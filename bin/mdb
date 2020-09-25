@@ -1,0 +1,23 @@
+#!/bin/bash
+
+cmd="$1"
+data="${2:-/home/marc/work/Cirrhinus/data}"
+
+if [[ $cmd = "init" ]]; then
+  echo "Configuring Mongo DB"
+  docker run -p 127.0.0.1:27017:27017/tcp -it -v "/data/db:$data" --name mongodb -d mongo
+elif [[ $cmd = "start" ]]; then
+  echo "Starting Mongo DB"
+  docker start mongodb
+elif [[ $cmd = "shell" ]]; then
+  echo "Starting Mongo Shell"
+  docker exec -it mongodb sh -c mongo
+elif [[ $cmd = "stop" ]]; then
+  echo "Stopping Mongo DB"
+  docker stop mongodb
+elif [[ $cmd = "remove" ]]; then
+  echo "Removing Mongo DB"
+  docker rm mongodb
+else
+  echo "usage: mdb <cmd:init|start|shell|stop|remove> [<dataDir>]"
+fi

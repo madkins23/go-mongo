@@ -1,0 +1,5 @@
+#!/bin/bash
+
+GOROOT=/snap/go/current
+go clean -testcache
+go test -tags database -p 1 -parallel 1 ./...
