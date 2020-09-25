@@ -1,9 +1,13 @@
 // Package mdb provides infrastructure for using Mongo from Go.
 // This package uses the zerolog logging package.
 //
-// The Access struct contains the current Mongo client and database objects.
-// It is returned from the Connect() function which also pings the database.
-// Visible variables can be used to change default configuration and timeouts.
+// Use the Connect() function to connect to the DB and return an Access object.
+// The Access object provides access to the Mongo DB and some common functionality.
+// The dbName is required for Connect(), an optional pointer to an Config struct
+// can be used to provide additional parameters for connecting to the DB.
+// If these are not provided they are filled in from various default global variables
+// which are visible and may be changed.
+//
 // The Access object provides a Disconnect() method suitable for use with defer.
 //
 // In addition, the Access object can be used to construct collections.

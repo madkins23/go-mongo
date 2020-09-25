@@ -3,7 +3,6 @@
 package mdb
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -18,5 +17,5 @@ func TestAccessSuite(t *testing.T) {
 }
 
 func (suite *accessTestSuite) TestPing() {
-	suite.NoError(suite.access.Ping(context.TODO()))
+	suite.NoError(suite.access.Ping())
 }

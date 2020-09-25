@@ -6,56 +6,75 @@ import (
 	"fmt"
 	"time"
 
-	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-)
-
-var (
-	// Default database name if not provided in Connect().
-	DefaultDatabase = "test"
-
-	// Default connection URL if not provided in Connect().
-	DefaultURL = "mongodb://localhost:27017"
-)
-
-var (
-	// Timeout for the initial connect.
-	ConnectTimeout = 10 * time.Second
-
-	// Timeout for the disconnect.
-	DisconnectTimeout = 10 * time.Second
-
-	// Timeout for the ping to make sure the connection is up.
-	PingTimeout = 2 * time.Second
 )
 
 // Access encapsulates database connection.
 type Access struct {
 	client   *mongo.Client
 	database *mongo.Database
+	config   Config
+}
+
+var (
+	// Default connection URL if not provided in Connect().
+	DefaultURL = "mongodb://localhost:27017"
+
+	// Default timeout for the initial connect.
+	DefaultConnectTimeout = 10 * time.Second
+
+	// Default timeout for the disconnect.
+	DefaultDisconnectTimeout = 10 * time.Second
+
+	// Default timeout for the ping to make sure the connection is up.
+	DefaultPingTimeout = 2 * time.Second
+
+	// Default timeout for collection access.
+	DefaultCollectionTimeout = time.Second
+
+	// Default timeout for index access.
+	DefaultIndexTimeout = 5 * time.Second
+)
+
+type Config struct {
+	// Base context for use in calls to Mongo.
+	Ctx context.Context
+
+	// Mongo URL.
+	URL string
+
+	Timeout
+}
+
+type Timeout struct {
+	// Timeout for the initial connect.
+	Connect time.Duration
+
+	// Timeout for the disconnect.
+	Disconnect time.Duration
+
+	// Timeout for the ping to make sure the connection is up.
+	Ping time.Duration
+
+	// Timeout for collection access.
+	Collection time.Duration
+
+	// Timeout for indexes.
+	Index time.Duration
 }
 
 // Connect to Mongo DB and return Access object.
 // If the ctxt is nil it will be provided as context.Background().
 // If the url is empty it will be set to mdb.DefaultURL.
 // If the dbName is empty it will be set to mdb.DefaultDatabase.
-func Connect(ctxt context.Context, url string, dbName string) (*Access, error) {
-	if ctxt == nil {
-		ctxt = context.Background()
-	}
-
-	if url == "" {
-		url = DefaultURL
-	}
-
-	if dbName == "" {
-		dbName = DefaultDatabase
-	}
-
-	ctx, cancel := context.WithTimeout(ctxt, ConnectTimeout)
+func Connect(dbName string, config *Config) (*Access, error) {
+	config = fixConfig(config)
+	ctx, cancel := context.WithTimeout(config.Ctx, config.Timeout.Connect)
 	defer cancel()
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(url))
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(config.URL))
 	if err != nil {
 		return nil, fmt.Errorf("unable to connect mongo server: %w", err)
 	}
@@ -63,9 +82,10 @@ func Connect(ctxt context.Context, url string, dbName string) (*Access, error) {
 	access := &Access{
 		client:   client,
 		database: client.Database(dbName),
+		config:   *config,
 	}
 
-	if err = access.Ping(ctxt); err != nil {
+	if err = access.Ping(); err != nil {
 		return nil, err
 	}
 
@@ -75,8 +95,8 @@ func Connect(ctxt context.Context, url string, dbName string) (*Access, error) {
 }
 
 // ConnectOrPanic connects to Mongo DB and returns Access object or panics on error.
-func ConnectOrPanic(ctxt context.Context, url string, dbName string) *Access {
-	access, err := Connect(ctxt, url, dbName)
+func ConnectOrPanic(dbName string, config *Config) *Access {
+	access, err := Connect(dbName, config)
 	if err != nil {
 		panic(err)
 	}
@@ -87,7 +107,7 @@ func ConnectOrPanic(ctxt context.Context, url string, dbName string) *Access {
 // Disconnect Mongo DB client.
 // Provided for use in defer statements.
 func (a *Access) Disconnect() error {
-	ctx, cancel := context.WithTimeout(context.Background(), DisconnectTimeout)
+	ctx, cancel := a.ContextWithTimeout(a.config.Timeout.Disconnect)
 	defer cancel()
 	if err := a.client.Disconnect(ctx); err != nil {
 		return fmt.Errorf("unable to disconnect mongo server: %w", err)
@@ -109,6 +129,16 @@ func (a *Access) Client() *mongo.Client {
 	return a.client
 }
 
+// Context returns the base context for the object.
+func (a *Access) Context() context.Context {
+	return a.config.Ctx
+}
+
+// Context returns the base context for the object with the specified timeout.
+func (a *Access) ContextWithTimeout(timeout time.Duration) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(a.config.Ctx, timeout)
+}
+
 // Client returns the Mongo database object.
 func (a *Access) Database() *mongo.Database {
 	return a.database
@@ -125,8 +155,8 @@ func (a *Access) NotFound(err error) bool {
 
 // Ping executes a ping against the Mongo server.
 // This is separated from Connect() so that it can be overridden if necessary.
-func (a *Access) Ping(ctxt context.Context) error {
-	ctx, cancel := context.WithTimeout(ctxt, PingTimeout)
+func (a *Access) Ping() error {
+	ctx, cancel := a.ContextWithTimeout(a.config.Timeout.Ping)
 	defer cancel()
 	err := a.client.Ping(ctx, readpref.Primary())
 	if err != nil {
@@ -141,4 +171,40 @@ func (a *Access) Ping(ctxt context.Context) error {
 // It may be overridden to use another logger or to block these messages.
 func (a *Access) Info(msg string) {
 	fmt.Printf("MDB: %s\n", msg)
+}
+
+func fixConfig(config *Config) *Config {
+	if config == nil {
+		config = &Config{}
+	}
+
+	if config.Ctx == nil {
+		config.Ctx = context.Background()
+	}
+
+	if config.URL == "" {
+		config.URL = DefaultURL
+	}
+
+	if config.Timeout.Connect == 0 {
+		config.Timeout.Connect = DefaultConnectTimeout
+	}
+
+	if config.Timeout.Disconnect == 0 {
+		config.Timeout.Disconnect = DefaultDisconnectTimeout
+	}
+
+	if config.Timeout.Ping == 0 {
+		config.Timeout.Ping = DefaultPingTimeout
+	}
+
+	if config.Timeout.Collection == 0 {
+		config.Timeout.Collection = DefaultCollectionTimeout
+	}
+
+	if config.Timeout.Index == 0 {
+		config.Timeout.Index = DefaultIndexTimeout
+	}
+
+	return config
 }

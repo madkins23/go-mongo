@@ -1,7 +1,6 @@
 package mdb
 
 import (
-	"context"
 	"errors"
 	"fmt"
 
@@ -20,7 +19,9 @@ func (a *Access) CollectionExists(name string) (bool, error) {
 		return false, errMissingCollectionName
 	}
 
-	names, err := a.database.ListCollectionNames(context.TODO(), bson.M{"name": name})
+	ctx, cancel := a.ContextWithTimeout(a.config.Timeout.Collection)
+	defer cancel()
+	names, err := a.database.ListCollectionNames(ctx, bson.M{"name": name})
 	if err != nil {
 		return false, fmt.Errorf("getting collection names: %w", err)
 	}
@@ -59,7 +60,9 @@ func (a *Access) Collection(collectionName string, validatorJSON string, finishe
 	}
 
 	// Create collection.
-	err := a.database.CreateCollection(context.TODO(), collectionName, opts...)
+	ctx, cancel := a.ContextWithTimeout(a.config.Timeout.Collection)
+	defer cancel()
+	err := a.database.CreateCollection(ctx, collectionName, opts...)
 	if err != nil {
 		if cmdErr, ok := err.(mongo.CommandError); !ok || !cmdErr.HasErrorLabel("NamespaceExists") {
 			return nil, fmt.Errorf("create collection: %w", err)
