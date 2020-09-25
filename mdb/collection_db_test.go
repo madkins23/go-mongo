@@ -36,6 +36,7 @@ func (suite *collectionTestSuite) TestCollectionValidatorFinisher() {
 	collection, err := suite.access.Collection(
 		"mdb-collection-finisher", testValidatorJSON,
 		func(access *Access, collection *mongo.Collection) error {
+			access.Info("Running finisher")
 			finished = true
 			return nil
 		})

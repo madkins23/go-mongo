@@ -69,6 +69,8 @@ func Connect(ctxt context.Context, url string, dbName string) (*Access, error) {
 		return nil, err
 	}
 
+	access.Info("Connected to MongoDB database " + access.database.Name())
+
 	return access, nil
 }
 
@@ -132,4 +134,11 @@ func (a *Access) Ping(ctxt context.Context) error {
 	}
 
 	return nil
+}
+
+// Info prints a simple message in the format MDB: <msg>.
+// This is used for a few calls within the Access code.
+// It may be overridden to use another logger or to block these messages.
+func (a *Access) Info(msg string) {
+	fmt.Printf("MDB: %s\n", msg)
 }

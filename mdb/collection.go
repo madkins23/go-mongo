@@ -66,6 +66,7 @@ func (a *Access) Collection(collectionName string, validatorJSON string, finishe
 		}
 	}
 	collection := a.database.Collection(collectionName)
+	a.Info("Created collection " + collection.Name())
 
 	// Run finishers on the collection.
 	for i, finisher := range finishers {

@@ -23,14 +23,14 @@ func (suite *AccessTestSuite) Access() *Access {
 }
 
 func (suite *AccessTestSuite) SetupSuite() {
-	// TODO: custom code to connect and drop database if it already exists
-
 	var err error
 	suite.access, err = Connect(nil, "", "db-test")
 	suite.Require().NoError(err, "connect to mongo")
+	suite.access.Info("Suite setup")
 }
 
 func (suite *AccessTestSuite) TearDownSuite() {
+	suite.access.Info("Suite teardown")
 	suite.NoError(suite.access.database.Drop(context.TODO()), "drop test database")
 	suite.NoError(suite.access.Disconnect(), "disconnect from mongo")
 }
