@@ -68,6 +68,17 @@ func (suite *cacheTestSuite) TestFindNone() {
 	suite.Nil(item)
 }
 
+func (suite *cacheTestSuite) TestCacheKey() {
+	tk := &testKey{
+		bravo: 666,
+	}
+	cacheKey, err := tk.CacheKey()
+	suite.Require().Error(err)
+	suite.Equal("", cacheKey)
+	_, err = suite.cache.Find(tk)
+	suite.Require().Error(err)
+}
+
 var (
 	errAlphaNotString   = errors.New("alpha not a string")
 	errBravoNotInt      = errors.New("bravo not an int")
