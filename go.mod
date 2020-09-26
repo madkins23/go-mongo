@@ -3,7 +3,7 @@ module mdb
 go 1.15
 
 require (
-	github.com/aws/aws-sdk-go v1.34.31 // indirect
+	github.com/aws/aws-sdk-go v1.34.32 // indirect
 	github.com/golang/snappy v0.0.2 // indirect
 	github.com/klauspost/compress v1.11.0 // indirect
 	github.com/stretchr/testify v1.6.1
