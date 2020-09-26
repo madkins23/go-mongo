@@ -39,6 +39,7 @@ var (
 	DefaultIndexTimeout = 5 * time.Second
 )
 
+// Config items for Mongo DB connection.
 type Config struct {
 	// Base context for use in calls to Mongo.
 	Ctx context.Context
@@ -49,6 +50,9 @@ type Config struct {
 	Timeout
 }
 
+// Timeout settings for Mongo DB access.
+// TODO: should this be a map[string]time.Duration instead?
+//  Use const to define the strings.
 type Timeout struct {
 	// Timeout for the initial connect.
 	Connect time.Duration

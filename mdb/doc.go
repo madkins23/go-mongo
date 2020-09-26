@@ -20,3 +20,9 @@
 // The use of '+build database' separates these so that they are only run
 // when using 'go test -tags database', without this tag only unit tests are run.
 package mdb
+
+import "errors"
+
+var (
+	NotYetImplemented = errors.New("Not yet implemented")
+)
