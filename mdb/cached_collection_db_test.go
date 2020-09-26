@@ -32,14 +32,13 @@ func (suite *cacheTestSuite) SetupSuite() {
 }
 
 func (suite *cacheTestSuite) TestCreateFindDelete() {
-	ti := &testItem{
-		alpha:   "one",
-		bravo:   1,
-		charlie: "One is the loneliest number",
-	}
 	tk := &testKey{
 		alpha: "one",
 		bravo: 1,
+	}
+	ti := &testItem{
+		testKey: *tk,
+		charlie: "One is the loneliest number",
 	}
 	err := suite.cache.Create(ti)
 	suite.Require().NoError(err)
@@ -69,13 +68,25 @@ func (suite *cacheTestSuite) TestFindNone() {
 	suite.Nil(item)
 }
 
+var (
+	errAlphaNotString   = errors.New("alpha not a string")
+	errBravoNotInt      = errors.New("bravo not an int")
+	errCharlieNotString = errors.New("charlie not a string")
+	errNoFieldAlpha     = errors.New("no alpha")
+	errNoFieldBravo     = errors.New("no bravo")
+)
+
 type testKey struct {
 	alpha string
 	bravo int
 }
 
-func (tk *testKey) CacheKey() string {
-	return fmt.Sprintf("%s-%d", tk.alpha, tk.bravo)
+func (tk *testKey) CacheKey() (string, error) {
+	if tk.alpha == "" {
+		return "", errAlphaNotString
+	}
+
+	return fmt.Sprintf("%s-%d", tk.alpha, tk.bravo), nil
 }
 
 func (tk *testKey) Filter() bson.D {
@@ -86,14 +97,9 @@ func (tk *testKey) Filter() bson.D {
 }
 
 type testItem struct {
-	alpha   string
-	bravo   int
+	testKey
 	charlie string
 	expires time.Time
-}
-
-func (ti *testItem) CacheKey() string {
-	return fmt.Sprintf("%s-%d", ti.alpha, ti.bravo)
 }
 
 func (ti *testItem) Document() bson.M {
@@ -118,14 +124,6 @@ func (ti *testItem) Filter() bson.D {
 		{"bravo", ti.bravo},
 	}
 }
-
-var (
-	errAlphaNotString   = errors.New("alpha not a string")
-	errBravoNotInt      = errors.New("bravo not an int")
-	errCharlieNotString = errors.New("charlie not a string")
-	errNoFieldAlpha     = errors.New("no alpha")
-	errNoFieldBravo     = errors.New("no bravo")
-)
 
 func (ti *testItem) InitFrom(stub bson.M) error {
 	var ok bool

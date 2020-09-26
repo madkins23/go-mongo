@@ -47,7 +47,7 @@ func NewCache(
 // Searchable may be used just for searching for a cached item.
 // This supports keys that are not complete items.
 type Searchable interface {
-	CacheKey() string
+	CacheKey() (string, error)
 	Filter() bson.D
 }
 
@@ -76,7 +76,11 @@ func (c *CachedCollection) Create(item Storable) error {
 
 // Delete object in cache and DB.
 func (c *CachedCollection) Delete(item Cacheable, idempotent bool) error {
-	delete(c.cache, item.CacheKey())
+	if cacheKey, err := item.CacheKey(); err != nil {
+		return fmt.Errorf("cache key: %w", err)
+	} else {
+		delete(c.cache, cacheKey)
+	}
 
 	result, err := c.DeleteOne(c.ctx, item.Filter())
 	if err != nil {
@@ -95,7 +99,10 @@ func (c *CachedCollection) Find(searchFor Searchable) (Cacheable, error) {
 	var found bool
 	var item Cacheable
 
-	cacheKey := searchFor.CacheKey()
+	cacheKey, err := searchFor.CacheKey()
+	if err != nil {
+		return nil, fmt.Errorf("cache key: %w", err)
+	}
 	if item, found = c.cache[cacheKey]; found {
 		if item == nil || item.Expired() {
 			delete(c.cache, cacheKey)
