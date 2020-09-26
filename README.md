@@ -2,8 +2,9 @@
 --
     import "."
 
-Package mdb provides infrastructure for using Mongo from Go. This package uses
-the zerolog logging package.
+Package mdb provides infrastructure for using Mongo from Go.
+
+This README file was generated using github.com/robertkrimen/godocdown
 
 Use the Connect() function to connect to the DB and return an Access object. The
 Access object provides access to the Mongo DB and some common functionality. The
@@ -367,7 +368,4 @@ type Timeout struct {
 }
 ```
 
-Timeout settings for Mongo DB access. TODO: should this be a
-map[string]time.Duration instead?
-
-    Use const to define the strings.
+Timeout settings for Mongo DB access.

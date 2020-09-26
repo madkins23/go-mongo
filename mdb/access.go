@@ -51,8 +51,6 @@ type Config struct {
 }
 
 // Timeout settings for Mongo DB access.
-// TODO: should this be a map[string]time.Duration instead?
-//  Use const to define the strings.
 type Timeout struct {
 	// Timeout for the initial connect.
 	Connect time.Duration
