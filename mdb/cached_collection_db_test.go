@@ -28,7 +28,7 @@ func (suite *cacheTestSuite) SetupSuite() {
 	suite.Require().NoError(err)
 	suite.NotNil(suite.collection)
 	suite.Require().NoError(suite.access.Index(suite.collection, NewIndexDescription(true, "alpha")))
-	suite.cache = NewCache(suite.access, suite.collection, context.TODO(), &testItem{}, time.Hour)
+	suite.cache = NewCachedCollection(suite.access, suite.collection, context.TODO(), &testItem{}, time.Hour)
 }
 
 func (suite *cacheTestSuite) TestFindNone() {

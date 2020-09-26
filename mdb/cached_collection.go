@@ -27,7 +27,7 @@ type CachedCollection struct {
 	expireAfter time.Duration
 }
 
-func NewCache(
+func NewCachedCollection(
 	access *Access, collection *mongo.Collection,
 	ctx context.Context, example interface{}, expireAfter time.Duration) *CachedCollection {
 	examType := reflect.TypeOf(example)
