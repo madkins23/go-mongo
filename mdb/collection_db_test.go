@@ -26,7 +26,7 @@ func (suite *collectionTestSuite) TestCollection() {
 }
 
 func (suite *collectionTestSuite) TestCollectionValidator() {
-	collection, err := suite.access.Collection("mdb-collection", testCollectionValidatorJSON)
+	collection, err := suite.access.Collection("mdb-collection", testValidatorJSON)
 	suite.Require().NoError(err)
 	suite.NotNil(collection)
 }
@@ -34,7 +34,7 @@ func (suite *collectionTestSuite) TestCollectionValidator() {
 func (suite *collectionTestSuite) TestCollectionValidatorFinisher() {
 	var finished bool
 	collection, err := suite.access.Collection(
-		"mdb-collection-finisher", testCollectionValidatorJSON,
+		"mdb-collection-finisher", testValidatorJSON,
 		func(access *Access, collection *mongo.Collection) error {
 			access.Info("Running finisher")
 			finished = true
@@ -47,25 +47,10 @@ func (suite *collectionTestSuite) TestCollectionValidatorFinisher() {
 
 func (suite *collectionTestSuite) TestCollectionValidatorFinisherError() {
 	collection, err := suite.access.Collection(
-		"mdb-collection-finisher-error", testCollectionValidatorJSON,
+		"mdb-collection-finisher-error", testValidatorJSON,
 		func(access *Access, collection *mongo.Collection) error {
 			return errors.New("fail")
 		})
 	suite.Error(err)
 	suite.Nil(collection)
 }
-
-var testCollectionValidatorJSON = `{
-	"$jsonSchema": {
-		"bsonType": "object",
-		"required": ["alpha", "bravo"],
-		"properties": {
-			"alpha": {
-				"bsonType": "string"
-			},
-			"bravo": {
-				"bsonType": "int"
-			}
-		}
-	}
-}`

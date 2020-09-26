@@ -148,6 +148,23 @@ func (a *Access) Database() *mongo.Database {
 	return a.database
 }
 
+func (a *Access) Duplicate(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	var e mongo.WriteException
+	if errors.As(err, &e) {
+		for _, we := range e.WriteErrors {
+			if we.Code == 11000 {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 // NotFound checks an error condition to see if it matches the underlying database "not found" error.
 func (a *Access) NotFound(err error) bool {
 	if err == nil {

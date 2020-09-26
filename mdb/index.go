@@ -8,15 +8,34 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func (a *Access) Index(collection *mongo.Collection, fields bson.D, unique bool) error {
+type IndexDescription struct {
+	unique bool
+	keys   []string
+}
+
+// Create new index description.
+func NewIndexDescription(unique bool, keys ...string) *IndexDescription {
+	return &IndexDescription{
+		unique: unique,
+		keys:   keys,
+	}
+}
+
+func (id *IndexDescription) AsBSON() bson.D {
+	asBSON := bson.D{}
+	for _, key := range id.keys {
+		asBSON = append(asBSON, bson.E{Key: key, Value: 1})
+	}
+	return asBSON
+}
+
+func (a *Access) Index(collection *mongo.Collection, description *IndexDescription) error {
 	ctx, cancel := a.ContextWithTimeout(a.config.Timeout.Index)
 	defer cancel()
 	_, err := collection.Indexes().CreateOne(ctx, mongo.IndexModel{
-		Keys: bson.D{
-			{"name", 1},
-		},
+		Keys: description.AsBSON(),
 		Options: &options.IndexOptions{
-			Unique: &unique, // magic cookie: must be address of boolean
+			Unique: &description.unique,
 		},
 	})
 	if err != nil {

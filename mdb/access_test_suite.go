@@ -29,6 +29,6 @@ func (suite *AccessTestSuite) SetupSuite() {
 
 func (suite *AccessTestSuite) TearDownSuite() {
 	suite.access.Info("Suite teardown")
-	suite.NoError(suite.access.database.Drop(suite.access.Context()), "drop test database")
+	suite.NoError(suite.access.Database().Drop(suite.access.Context()), "drop test database")
 	suite.NoError(suite.access.Disconnect(), "disconnect from mongo")
 }
