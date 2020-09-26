@@ -57,3 +57,12 @@ func (suite *indexTestSuite) TestIndexThree() {
 	suite.Require().NoError(suite.access.Index(suite.collection, index3))
 	NewIndexTester().TestIndexes(suite.T(), suite.collection, index1, index2, index3)
 }
+
+func (suite *indexTestSuite) TestIndexFinisher() {
+	index := NewIndexDescription(true, "alpha", "bravo")
+	collection, err := suite.access.Collection("test-index-finisher-collection",
+		testValidatorJSON, index.Finisher())
+	suite.Require().NoError(err)
+	suite.NotNil(collection)
+	NewIndexTester().TestIndexes(suite.T(), collection, index)
+}
