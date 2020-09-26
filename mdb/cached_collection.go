@@ -75,7 +75,7 @@ func (c *CachedCollection) Create(item Storable) error {
 }
 
 // Delete object in cache and DB.
-func (c *CachedCollection) Delete(item Cacheable, idempotent bool) error {
+func (c *CachedCollection) Delete(item Searchable, idempotent bool) error {
 	if cacheKey, err := item.CacheKey(); err != nil {
 		return fmt.Errorf("cache key: %w", err)
 	} else {
