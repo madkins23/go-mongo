@@ -1,4 +1,4 @@
-module mdb
+module github.com/madkins23/go-mongo
 
 go 1.15
 
