@@ -44,19 +44,20 @@ func NewCachedCollection(
 	}
 }
 
+// Cacheable must be searchable, storable and able to be recreated and expired.
+type Cacheable interface {
+	Searchable
+	Storable
+	ExpireAfter(time.Duration)
+	Expired() bool
+	InitFrom(stub bson.M) error
+}
+
 // Searchable may be used just for searching for a cached item.
 // This supports keys that are not complete items.
 type Searchable interface {
 	CacheKey() (string, error)
 	Filter() bson.D
-}
-
-// Cacheable must be searchable and able to be recreated and expired.
-type Cacheable interface {
-	Searchable
-	ExpireAfter(time.Duration)
-	Expired() bool
-	InitFrom(stub bson.M) error
 }
 
 // Storable must be able to generate a Mongo document.
@@ -135,6 +136,28 @@ func (c *CachedCollection) Find(searchFor Searchable) (Cacheable, error) {
 		}
 		item.ExpireAfter(c.expireAfter)
 		c.cache[cacheKey] = item
+	}
+
+	return item, nil
+}
+
+// FindOrCreate returns an existing cacheable object or creates it if it does not already exist.
+func (c *CachedCollection) FindOrCreate(cacheItem Cacheable) (Cacheable, error) {
+	item, err := c.Find(cacheItem)
+	if err != nil {
+		if !c.NotFound(err) {
+			return nil, err
+		}
+
+		err = c.Create(cacheItem)
+		if err != nil {
+			return nil, err
+		}
+
+		item, err = c.Find(cacheItem)
+		if err != nil {
+			return nil, fmt.Errorf("find just created item: %w", err)
+		}
 	}
 
 	return item, nil

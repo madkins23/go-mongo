@@ -87,6 +87,31 @@ func (suite *cacheTestSuite) TestCreateDuplicate() {
 	suite.Require().True(suite.access.Duplicate(err))
 }
 
+func (suite *cacheTestSuite) TestFindOrCreate() {
+	tk := &testKey{
+		alpha: "three",
+		bravo: 3,
+	}
+	ti := &testItem{
+		testKey: *tk,
+		charlie: "Three can keep a secret, if two of them are dead",
+	}
+	item, err := suite.cache.Find(tk)
+	suite.Require().Error(err)
+	suite.True(suite.cache.NotFound(err))
+	suite.Nil(item)
+	item, err = suite.cache.FindOrCreate(ti)
+	suite.Require().NoError(err)
+	suite.NotNil(item)
+	item, err = suite.cache.Find(tk)
+	suite.Require().NoError(err)
+	suite.NotNil(item)
+	item2, err := suite.cache.FindOrCreate(ti)
+	suite.Require().NoError(err)
+	suite.NotNil(item2)
+	suite.Equal(item, item2)
+}
+
 func (suite *cacheTestSuite) TestCacheKey() {
 	tk := &testKey{
 		bravo: 666,
