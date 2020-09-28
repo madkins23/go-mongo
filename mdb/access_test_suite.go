@@ -21,8 +21,12 @@ func (suite *AccessTestSuite) Access() *Access {
 }
 
 func (suite *AccessTestSuite) SetupSuite() {
+	suite.SetupSuiteConfig(nil)
+}
+
+func (suite *AccessTestSuite) SetupSuiteConfig(config *Config) {
 	var err error
-	suite.access, err = Connect("db-test", nil)
+	suite.access, err = Connect("db-test", config)
 	suite.Require().NoError(err, "connect to mongo")
 	suite.access.Info("Suite setup")
 }
