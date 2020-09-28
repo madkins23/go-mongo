@@ -7,12 +7,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/suite"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type indexTestSuite struct {
 	AccessTestSuite
-	collection *mongo.Collection
+	collection *Collection
 }
 
 func TestIndexSuite(t *testing.T) {

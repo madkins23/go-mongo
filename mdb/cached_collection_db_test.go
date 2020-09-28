@@ -8,13 +8,12 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/suite"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type cacheTestSuite struct {
 	AccessTestSuite
 	cache      *CachedCollection
-	collection *mongo.Collection
+	collection *Collection
 }
 
 func TestCacheSuite(t *testing.T) {

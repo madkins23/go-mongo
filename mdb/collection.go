@@ -38,15 +38,15 @@ func (a *Access) CollectionExists(name string) (bool, error) {
 }
 
 // CollectionFinisher provides a way to add special processing when creating a collection.
-type CollectionFinisher func(access *Access, collection *mongo.Collection) error
+type CollectionFinisher func(access *Access, collection *Collection) error
 
 // Collection acquires the named collection, creating it if necessary.
-func (a *Access) Collection(collectionName string, validatorJSON string, finishers ...CollectionFinisher) (*mongo.Collection, error) {
+func (a *Access) Collection(collectionName string, validatorJSON string, finishers ...CollectionFinisher) (*Collection, error) {
 	if exists, err := a.CollectionExists(collectionName); err != nil {
 		return nil, fmt.Errorf("does collection '%s' exist: %w", collectionName, err)
 	} else if exists {
 		// Collection already exists, just return it.
-		return a.database.Collection(collectionName), nil
+		return &Collection{Access: a, Collection: a.database.Collection(collectionName)}, nil
 	}
 
 	// Add option for validator JSON if it is provided.
@@ -68,7 +68,7 @@ func (a *Access) Collection(collectionName string, validatorJSON string, finishe
 			return nil, fmt.Errorf("create collection: %w", err)
 		}
 	}
-	collection := a.database.Collection(collectionName)
+	collection := &Collection{Access: a, Collection: a.database.Collection(collectionName)}
 	a.Info("Created collection " + collection.Name())
 
 	// Run finishers on the collection.
@@ -79,4 +79,32 @@ func (a *Access) Collection(collectionName string, validatorJSON string, finishe
 	}
 
 	return collection, nil
+}
+
+type Collection struct {
+	*Access
+	*mongo.Collection
+}
+
+var errNotString = errors.New("value not a string")
+
+func (c *Collection) StringValuesFor(field string, filter bson.D) ([]string, error) {
+	if filter == nil {
+		filter = bson.D{}
+	}
+	values, err := c.Distinct(c.Context(), field, filter)
+	if err != nil {
+		return nil, fmt.Errorf("distinct values: %w", err)
+	}
+
+	var ok bool
+	length := len(values)
+	result := make([]string, length)
+	for i := 0; i < length; i++ {
+		if result[i], ok = values[i].(string); !ok {
+			return nil, errNotString
+		}
+	}
+
+	return result, nil
 }

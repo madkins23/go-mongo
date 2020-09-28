@@ -31,12 +31,12 @@ func (id *IndexDescription) AsBSON() bson.D {
 
 // Return a function that can be used as a CollectionFinisher.
 func (id *IndexDescription) Finisher() CollectionFinisher {
-	return func(access *Access, collection *mongo.Collection) error {
+	return func(access *Access, collection *Collection) error {
 		return access.Index(collection, id)
 	}
 }
 
-func (a *Access) Index(collection *mongo.Collection, description *IndexDescription) error {
+func (a *Access) Index(collection *Collection, description *IndexDescription) error {
 	ctx, cancel := a.ContextWithTimeout(a.config.Timeout.Index)
 	defer cancel()
 	_, err := collection.Indexes().CreateOne(ctx, mongo.IndexModel{

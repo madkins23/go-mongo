@@ -19,3 +19,7 @@ func TestAccessSuite(t *testing.T) {
 func (suite *accessTestSuite) TestPing() {
 	suite.NoError(suite.access.Ping())
 }
+
+func (suite *accessTestSuite) TestContext() {
+	suite.Require().NotNil(suite.access.Context())
+}

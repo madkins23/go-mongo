@@ -7,7 +7,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // IndexTester provides a utility for verifying index creation.
@@ -23,7 +22,7 @@ func NewIndexTester() IndexTester {
 	return make(IndexTester, 0, 2)
 }
 
-func (it IndexTester) TestIndexes(t *testing.T, collection *mongo.Collection, descriptions ...*IndexDescription) {
+func (it IndexTester) TestIndexes(t *testing.T, collection *Collection, descriptions ...*IndexDescription) {
 	ctx := context.Background()
 	cursor, err := collection.Indexes().List(ctx)
 	require.NoError(t, err)

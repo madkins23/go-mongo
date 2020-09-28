@@ -7,14 +7,12 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // CachedCollection Mongo-stored objects so that the same object is always returned.
 // This is most useful for objects that change rarely.
 type CachedCollection struct {
-	*Access
-	*mongo.Collection
+	*Collection
 	cache       map[string]Cacheable
 	ctx         context.Context
 	itemType    reflect.Type // if only we had generics
@@ -22,14 +20,13 @@ type CachedCollection struct {
 }
 
 func NewCachedCollection(
-	access *Access, collection *mongo.Collection,
+	access *Access, collection *Collection,
 	ctx context.Context, example Cacheable, expireAfter time.Duration) *CachedCollection {
 	exampleType := reflect.TypeOf(example)
 	if exampleType != nil && exampleType.Kind() == reflect.Ptr {
 		exampleType = exampleType.Elem()
 	}
 	return &CachedCollection{
-		Access:      access,
 		Collection:  collection,
 		cache:       make(map[string]Cacheable),
 		ctx:         ctx,
@@ -99,7 +96,7 @@ func (c *CachedCollection) Find(searchFor Searchable) (Cacheable, error) {
 	}
 
 	if !found {
-		item = c.instantiate()
+		item = c.Instantiate()
 		err := c.FindOne(c.ctx, searchFor.Filter()).Decode(item)
 		if err != nil {
 			if c.NotFound(err) {
@@ -140,7 +137,7 @@ func (c *CachedCollection) FindOrCreate(cacheItem Cacheable) (Cacheable, error) 
 	return item, nil
 }
 
-func (c *CachedCollection) instantiate() Cacheable {
+func (c *CachedCollection) Instantiate() Cacheable {
 	// TODO: can we assume that the item type will return an Cacheable?
 	return reflect.New(c.itemType).Interface().(Cacheable)
 }
