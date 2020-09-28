@@ -35,9 +35,14 @@ func NewCachedCollection(
 	}
 }
 
-// Cacheable must be searchable, storable and able to be recreated and expired.
+// Cacheable must be searchable and loadable.
 type Cacheable interface {
 	Searchable
+	Loadable
+}
+
+// Loadable may be loaded and then realized from stored fields.
+type Loadable interface {
 	ExpireAfter(duration time.Duration)
 	Expired() bool
 	Realize() error
