@@ -48,7 +48,7 @@ func NewCachedCollection(
 type Cacheable interface {
 	Searchable
 	Storable
-	ExpireAfter(time.Duration)
+	ExpireAfter(duration time.Duration)
 	Expired() bool
 	InitFrom(stub bson.M) error
 }

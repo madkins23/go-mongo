@@ -172,6 +172,23 @@ func (a *Access) NotFound(err error) bool {
 	return errors.Is(err, mongo.ErrNoDocuments)
 }
 
+func (a *Access) ValidationFailure(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	var e mongo.WriteException
+	if errors.As(err, &e) {
+		for _, we := range e.WriteErrors {
+			if we.Code == 121 {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 // Ping executes a ping against the Mongo server.
 // This is separated from Connect() so that it can be overridden if necessary.
 func (a *Access) Ping() error {
