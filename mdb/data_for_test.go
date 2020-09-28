@@ -47,6 +47,14 @@ type testItem struct {
 	expires time.Time
 }
 
+func (ti *testItem) Document() bson.M {
+	return bson.M{
+		"alpha":   ti.TestKey.Alpha,
+		"bravo":   ti.TestKey.Bravo,
+		"charlie": ti.Charlie,
+	}
+}
+
 func (ti *testItem) ExpireAfter(duration time.Duration) {
 	ti.expires = time.Now().Add(duration)
 }

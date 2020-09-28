@@ -35,9 +35,10 @@ func NewCachedCollection(
 	}
 }
 
-// Cacheable must be searchable, storable and able to be recreated and expired.
+// Cacheable must be searchable and able to be recreated and expired.
 type Cacheable interface {
 	Searchable
+	Storable
 	ExpireAfter(duration time.Duration)
 	Expired() bool
 	Realize() error
@@ -50,9 +51,14 @@ type Searchable interface {
 	Filter() bson.D
 }
 
+// Storable generates a BSON document to be stored in the DB.
+type Storable interface {
+	Document() bson.M
+}
+
 // Create object in DB but not cache.
-func (c *CachedCollection) Create(item interface{}) error {
-	if _, err := c.InsertOne(c.ctx, item); err != nil {
+func (c *CachedCollection) Create(item Storable) error {
+	if _, err := c.InsertOne(c.ctx, item.Document()); err != nil {
 		return fmt.Errorf("insert item: %w", err)
 	}
 
