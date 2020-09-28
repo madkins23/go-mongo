@@ -2,18 +2,12 @@ package mdb
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"reflect"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-)
-
-var (
-	errNotCacheable = errors.New("item not cacheable")
-	errNotInterface = errors.New("item not an interface")
 )
 
 // CachedCollection Mongo-stored objects so that the same object is always returned.
@@ -23,23 +17,23 @@ type CachedCollection struct {
 	*mongo.Collection
 	cache       map[string]Cacheable
 	ctx         context.Context
-	itemType    reflect.Type
+	itemType    reflect.Type // if only we had generics
 	expireAfter time.Duration
 }
 
 func NewCachedCollection(
 	access *Access, collection *mongo.Collection,
-	ctx context.Context, example interface{}, expireAfter time.Duration) *CachedCollection {
-	examType := reflect.TypeOf(example)
-	if examType != nil && examType.Kind() == reflect.Ptr {
-		examType = examType.Elem()
+	ctx context.Context, example Cacheable, expireAfter time.Duration) *CachedCollection {
+	exampleType := reflect.TypeOf(example)
+	if exampleType != nil && exampleType.Kind() == reflect.Ptr {
+		exampleType = exampleType.Elem()
 	}
 	return &CachedCollection{
 		Access:      access,
 		Collection:  collection,
 		cache:       make(map[string]Cacheable),
 		ctx:         ctx,
-		itemType:    examType,
+		itemType:    exampleType,
 		expireAfter: expireAfter,
 	}
 }
@@ -47,10 +41,9 @@ func NewCachedCollection(
 // Cacheable must be searchable, storable and able to be recreated and expired.
 type Cacheable interface {
 	Searchable
-	Storable
 	ExpireAfter(duration time.Duration)
 	Expired() bool
-	InitFrom(stub bson.M) error
+	Realize() error
 }
 
 // Searchable may be used just for searching for a cached item.
@@ -60,15 +53,9 @@ type Searchable interface {
 	Filter() bson.D
 }
 
-// Storable must be able to generate a Mongo document.
-// This supports "stub" objects used just to add items.
-type Storable interface {
-	Document() bson.M
-}
-
 // Create object in DB but not cache.
-func (c *CachedCollection) Create(item Storable) error {
-	if _, err := c.InsertOne(c.ctx, item.Document()); err != nil {
+func (c *CachedCollection) Create(item interface{}) error {
+	if _, err := c.InsertOne(c.ctx, item); err != nil {
 		return fmt.Errorf("insert item: %w", err)
 	}
 
@@ -112,8 +99,8 @@ func (c *CachedCollection) Find(searchFor Searchable) (Cacheable, error) {
 	}
 
 	if !found {
-		var stub bson.M
-		err := c.FindOne(c.ctx, searchFor.Filter()).Decode(&stub)
+		item = c.instantiate()
+		err := c.FindOne(c.ctx, searchFor.Filter()).Decode(item)
 		if err != nil {
 			if c.NotFound(err) {
 				return nil, fmt.Errorf("no item '%s': %w", cacheKey, err)
@@ -121,17 +108,7 @@ func (c *CachedCollection) Find(searchFor Searchable) (Cacheable, error) {
 			return nil, fmt.Errorf("find item '%s': %w", cacheKey, err)
 		}
 
-		value := reflect.New(c.itemType)
-		if !value.CanInterface() {
-			// Would panic in next step.
-			return nil, errNotInterface
-		}
-		var ok bool
-		item, ok = value.Interface().(Cacheable)
-		if !ok {
-			return nil, errNotCacheable
-		}
-		if err = item.InitFrom(stub); err != nil {
+		if err = item.Realize(); err != nil {
 			return nil, fmt.Errorf("init from: %w", err)
 		}
 		item.ExpireAfter(c.expireAfter)
@@ -161,4 +138,9 @@ func (c *CachedCollection) FindOrCreate(cacheItem Cacheable) (Cacheable, error) 
 	}
 
 	return item, nil
+}
+
+func (c *CachedCollection) instantiate() Cacheable {
+	// TODO: can we assume that the item type will return an Cacheable?
+	return reflect.New(c.itemType).Interface().(Cacheable)
 }

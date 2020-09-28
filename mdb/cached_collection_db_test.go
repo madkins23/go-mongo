@@ -32,9 +32,9 @@ func (suite *cacheTestSuite) SetupSuite() {
 }
 
 func (suite *cacheTestSuite) TestFindNone() {
-	tk := &testKey{
-		alpha: "beast",
-		bravo: 666,
+	tk := &TestKey{
+		Alpha: "beast",
+		Bravo: 666,
 	}
 	item, err := suite.cache.Find(tk)
 	suite.Require().Error(err)
@@ -43,13 +43,13 @@ func (suite *cacheTestSuite) TestFindNone() {
 }
 
 func (suite *cacheTestSuite) TestCreateFindDelete() {
-	tk := &testKey{
-		alpha: "one",
-		bravo: 1,
+	tk := &TestKey{
+		Alpha: "one",
+		Bravo: 1,
 	}
 	ti := &testItem{
-		testKey: *tk,
-		charlie: "One is the loneliest number",
+		TestKey: *tk,
+		Charlie: "One is the loneliest number",
 	}
 	err := suite.cache.Create(ti)
 	suite.Require().NoError(err)
@@ -69,13 +69,13 @@ func (suite *cacheTestSuite) TestCreateFindDelete() {
 }
 
 func (suite *cacheTestSuite) TestCreateDuplicate() {
-	tk := &testKey{
-		alpha: "two",
-		bravo: 2,
+	tk := &TestKey{
+		Alpha: "two",
+		Bravo: 2,
 	}
 	ti := &testItem{
-		testKey: *tk,
-		charlie: "Two is too much",
+		TestKey: *tk,
+		Charlie: "Two is too much",
 	}
 	err := suite.cache.Create(ti)
 	suite.Require().NoError(err)
@@ -88,13 +88,13 @@ func (suite *cacheTestSuite) TestCreateDuplicate() {
 }
 
 func (suite *cacheTestSuite) TestFindOrCreate() {
-	tk := &testKey{
-		alpha: "three",
-		bravo: 3,
+	tk := &TestKey{
+		Alpha: "three",
+		Bravo: 3,
 	}
 	ti := &testItem{
-		testKey: *tk,
-		charlie: "Three can keep a secret, if two of them are dead",
+		TestKey: *tk,
+		Charlie: "Three can keep a secret, if two of them are dead",
 	}
 	item, err := suite.cache.Find(tk)
 	suite.Require().Error(err)
@@ -110,15 +110,4 @@ func (suite *cacheTestSuite) TestFindOrCreate() {
 	suite.Require().NoError(err)
 	suite.NotNil(item2)
 	suite.Equal(item, item2)
-}
-
-func (suite *cacheTestSuite) TestCacheKey() {
-	tk := &testKey{
-		bravo: 666,
-	}
-	cacheKey, err := tk.CacheKey()
-	suite.Require().Error(err)
-	suite.Equal("", cacheKey)
-	_, err = suite.cache.Find(tk)
-	suite.Require().Error(err)
 }

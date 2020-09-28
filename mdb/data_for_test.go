@@ -1,7 +1,6 @@
 package mdb
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -26,46 +25,26 @@ var testValidatorJSON = `{
 	}
 }`
 
-var (
-	errAlphaNotString   = errors.New("alpha not a string")
-	errBravoNotInt      = errors.New("bravo not an int")
-	errCharlieNotString = errors.New("charlie not a string")
-	errNoFieldAlpha     = errors.New("no alpha")
-	errNoFieldBravo     = errors.New("no bravo")
-)
-
-type testKey struct {
-	alpha string
-	bravo int
+type TestKey struct {
+	Alpha string
+	Bravo int
 }
 
-func (tk *testKey) CacheKey() (string, error) {
-	if tk.alpha == "" {
-		return "", errAlphaNotString
-	}
-
-	return fmt.Sprintf("%s-%d", tk.alpha, tk.bravo), nil
+func (tk *TestKey) CacheKey() (string, error) {
+	return fmt.Sprintf("%s-%d", tk.Alpha, tk.Bravo), nil
 }
 
-func (tk *testKey) Filter() bson.D {
+func (tk *TestKey) Filter() bson.D {
 	return bson.D{
-		{"alpha", tk.alpha},
-		{"bravo", tk.bravo},
+		{"alpha", tk.Alpha},
+		{"bravo", tk.Bravo},
 	}
 }
 
 type testItem struct {
-	testKey
-	charlie string
+	TestKey `bson:"inline"`
+	Charlie string
 	expires time.Time
-}
-
-func (ti *testItem) Document() bson.M {
-	return bson.M{
-		"alpha":   ti.alpha,
-		"bravo":   ti.bravo,
-		"charlie": ti.charlie,
-	}
 }
 
 func (ti *testItem) ExpireAfter(duration time.Duration) {
@@ -78,30 +57,11 @@ func (ti *testItem) Expired() bool {
 
 func (ti *testItem) Filter() bson.D {
 	return bson.D{
-		{"alpha", ti.alpha},
-		{"bravo", ti.bravo},
+		{"alpha", ti.Alpha},
+		{"bravo", ti.Bravo},
 	}
 }
 
-func (ti *testItem) InitFrom(stub bson.M) error {
-	var ok bool
-	if alpha, found := stub["alpha"]; !found {
-		return errNoFieldAlpha
-	} else if ti.alpha, ok = alpha.(string); !ok {
-		return errAlphaNotString
-	}
-	if bravo, found := stub["bravo"]; !found {
-		return errNoFieldBravo
-	} else if bravo32, ok := bravo.(int32); !ok {
-		return errBravoNotInt
-	} else {
-		ti.bravo = int(bravo32)
-	}
-	if charlie, found := stub["charlie"]; !found {
-		// Field not required.
-		ti.charlie = ""
-	} else if ti.charlie, ok = charlie.(string); !ok {
-		return errCharlieNotString
-	}
+func (ti *testItem) Realize() error {
 	return nil
 }
