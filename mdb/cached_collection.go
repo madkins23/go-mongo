@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -20,7 +21,7 @@ type CachedCollection struct {
 }
 
 func NewCachedCollection(
-	access *Access, collection *Collection,
+	collection *Collection,
 	ctx context.Context, example Cacheable, expireAfter time.Duration) *CachedCollection {
 	exampleType := reflect.TypeOf(example)
 	if exampleType != nil && exampleType.Kind() == reflect.Ptr {
@@ -142,7 +143,17 @@ func (c *CachedCollection) FindOrCreate(cacheItem Cacheable) (Cacheable, error) 
 	return item, nil
 }
 
+// Instantiate the Cacheable item specified by the item type.
 func (c *CachedCollection) Instantiate() Cacheable {
 	// TODO: can we assume that the item type will return an Cacheable?
 	return reflect.New(c.itemType).Interface().(Cacheable)
+}
+
+// InvalidateByPrefix removes items from the cache if the item key has the specified prefix.
+func (c *CachedCollection) InvalidateByPrefix(prefix string) {
+	for k := range c.cache {
+		if strings.HasPrefix(k, prefix) {
+			delete(c.cache, k)
+		}
+	}
 }

@@ -27,7 +27,7 @@ func (suite *cacheTestSuite) SetupSuite() {
 	suite.Require().NoError(err)
 	suite.NotNil(suite.collection)
 	suite.Require().NoError(suite.access.Index(suite.collection, NewIndexDescription(true, "alpha")))
-	suite.cache = NewCachedCollection(suite.access, suite.collection, context.TODO(), &testItem{}, time.Hour)
+	suite.cache = NewCachedCollection(suite.collection, context.TODO(), &testItem{}, time.Hour)
 }
 
 func (suite *cacheTestSuite) TestFindNone() {
@@ -91,6 +91,13 @@ func (suite *cacheTestSuite) TestCreateDuplicate() {
 	err = suite.cache.Create(ti)
 	suite.Require().Error(err)
 	suite.Require().True(suite.access.Duplicate(err))
+	cacheKey, err := tk.CacheKey()
+	suite.Require().NoError(err)
+	_, ok := suite.cache.cache[cacheKey]
+	suite.True(ok)
+	suite.cache.InvalidateByPrefix("two")
+	_, ok = suite.cache.cache[cacheKey]
+	suite.False(ok)
 }
 
 func (suite *cacheTestSuite) TestFindOrCreate() {
