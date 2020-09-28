@@ -11,6 +11,8 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
+const AccessTestDBname = "db-test"
+
 type AccessTestSuite struct {
 	suite.Suite
 	access *Access
@@ -26,7 +28,7 @@ func (suite *AccessTestSuite) SetupSuite() {
 
 func (suite *AccessTestSuite) SetupSuiteConfig(config *Config) {
 	var err error
-	suite.access, err = Connect("db-test", config)
+	suite.access, err = Connect(AccessTestDBname, config)
 	suite.Require().NoError(err, "connect to mongo")
 	suite.access.Info("Suite setup")
 }
