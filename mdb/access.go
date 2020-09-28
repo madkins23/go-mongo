@@ -23,6 +23,11 @@ var (
 	// Default connection URL if not provided in Connect().
 	DefaultURL = "mongodb://localhost:27017"
 
+	// Default info logging function.
+	DefaultLogInfoFn = func(msg string) {
+		fmt.Printf("MDB: %s\n", msg)
+	}
+
 	// Default timeout for the initial connect.
 	DefaultConnectTimeout = 10 * time.Second
 
@@ -44,8 +49,11 @@ type Config struct {
 	// Base context for use in calls to Mongo.
 	Ctx context.Context
 
-	// Mongo URL.
+	// Mongo URL may be overridden.
 	URL string
+
+	// Logging function for information messages may be overridden.
+	LogInfoFn func(msg string)
 
 	Timeout
 }
@@ -206,7 +214,7 @@ func (a *Access) Ping() error {
 // This is used for a few calls within the Access code.
 // It may be overridden to use another logger or to block these messages.
 func (a *Access) Info(msg string) {
-	fmt.Printf("MDB: %s\n", msg)
+	a.config.LogInfoFn(msg)
 }
 
 func fixConfig(config *Config) *Config {
@@ -220,6 +228,10 @@ func fixConfig(config *Config) *Config {
 
 	if config.URL == "" {
 		config.URL = DefaultURL
+	}
+
+	if config.LogInfoFn == nil {
+		config.LogInfoFn = DefaultLogInfoFn
 	}
 
 	if config.Timeout.Connect == 0 {

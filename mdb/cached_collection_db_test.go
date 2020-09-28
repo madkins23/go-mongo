@@ -55,8 +55,15 @@ func (suite *cacheTestSuite) TestCreateFindDelete() {
 	item, err := suite.cache.Find(tk)
 	suite.Require().NoError(err)
 	suite.NotNil(item)
+	cacheKey, err := tk.CacheKey()
+	suite.Require().NoError(err)
+	suite.NotEmpty(cacheKey)
+	_, ok := suite.cache.cache[cacheKey]
+	suite.True(ok)
 	err = suite.cache.Delete(item, false)
 	suite.Require().NoError(err)
+	_, ok = suite.cache.cache[cacheKey]
+	suite.False(ok)
 	noItem, err := suite.cache.Find(tk)
 	suite.Require().Error(err)
 	suite.True(suite.cache.NotFound(err))
