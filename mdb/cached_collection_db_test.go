@@ -55,8 +55,7 @@ func (suite *cacheTestSuite) TestCreateFindDelete() {
 	item, err := suite.cache.Find(tk)
 	suite.Require().NoError(err)
 	suite.NotNil(item)
-	cacheKey, err := tk.CacheKey()
-	suite.Require().NoError(err)
+	cacheKey := tk.CacheKey()
 	suite.NotEmpty(cacheKey)
 	_, ok := suite.cache.cache[cacheKey]
 	suite.True(ok)
@@ -91,8 +90,7 @@ func (suite *cacheTestSuite) TestCreateDuplicate() {
 	err = suite.cache.Create(ti)
 	suite.Require().Error(err)
 	suite.Require().True(suite.access.Duplicate(err))
-	cacheKey, err := tk.CacheKey()
-	suite.Require().NoError(err)
+	cacheKey := tk.CacheKey()
 	_, ok := suite.cache.cache[cacheKey]
 	suite.True(ok)
 	suite.cache.InvalidateByPrefix("two")

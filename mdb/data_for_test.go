@@ -30,8 +30,8 @@ type TestKey struct {
 	Bravo int
 }
 
-func (tk *TestKey) CacheKey() (string, error) {
-	return fmt.Sprintf("%s-%d", tk.Alpha, tk.Bravo), nil
+func (tk *TestKey) CacheKey() string {
+	return fmt.Sprintf("%s-%d", tk.Alpha, tk.Bravo)
 }
 
 func (tk *TestKey) Filter() bson.D {
