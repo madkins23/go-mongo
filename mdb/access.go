@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"go.mongodb.org/mongo-driver/mongo/options"
-
+	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
@@ -20,8 +20,8 @@ type Access struct {
 }
 
 var (
-	// Default connection URL if not provided in Connect().
-	DefaultURL = "mongodb://localhost:27017"
+	// Default connection URI if not provided in Config.Options.
+	DefaultURI = "mongodb://localhost:27017"
 
 	// Default info logging function.
 	DefaultLogInfoFn = func(msg string) {
@@ -49,8 +49,11 @@ type Config struct {
 	// Base context for use in calls to Mongo.
 	Ctx context.Context
 
-	// Mongo URL may be overridden.
-	URL string
+	// Mongo options.
+	Options *options.ClientOptions
+
+	// Optional BSON codec registry for handling special types.
+	Registry *bsoncodec.Registry
 
 	// Logging function for information messages may be overridden.
 	LogInfoFn func(msg string)
@@ -78,13 +81,14 @@ type Timeout struct {
 
 // Connect to Mongo DB and return Access object.
 // If the ctxt is nil it will be provided as context.Background().
-// If the url is empty it will be set to mdb.DefaultURL.
+// If the url is empty it will be set to mdb.DefaultURI.
 // If the dbName is empty it will be set to mdb.DefaultDatabase.
 func Connect(dbName string, config *Config) (*Access, error) {
 	config = fixConfig(config)
 	ctx, cancel := context.WithTimeout(config.Ctx, config.Timeout.Connect)
 	defer cancel()
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(config.URL))
+
+	client, err := mongo.Connect(ctx, config.Options)
 	if err != nil {
 		return nil, fmt.Errorf("unable to connect mongo server: %w", err)
 	}
@@ -226,8 +230,11 @@ func fixConfig(config *Config) *Config {
 		config.Ctx = context.Background()
 	}
 
-	if config.URL == "" {
-		config.URL = DefaultURL
+	if config.Options == nil {
+		config.Options = options.Client()
+		if config.Options.GetURI() == "" {
+			config.Options.ApplyURI(DefaultURI)
+		}
 	}
 
 	if config.LogInfoFn == nil {
