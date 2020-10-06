@@ -1,5 +1,3 @@
-// +build database
-
 package mdb
 
 // Would prefer to name this file ending in _test.go
