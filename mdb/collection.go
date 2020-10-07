@@ -92,6 +92,15 @@ func (a *Access) Collection(
 	return collection, nil
 }
 
+// Count documents in collection matching filter.
+func (c *Collection) Count(filter bson.D) (int64, error) {
+	if count, err := c.Collection.CountDocuments(context.TODO(), filter); err != nil {
+		return 0, fmt.Errorf("insert item: %w", err)
+	} else {
+		return count, nil
+	}
+}
+
 // Create item in DB.
 func (c *Collection) Create(item interface{}) error {
 	if _, err := c.InsertOne(c.ctx, item); err != nil {
@@ -113,6 +122,15 @@ func (c *Collection) Delete(filter bson.D, idempotent bool) error {
 		return fmt.Errorf("deleted %d items", result.DeletedCount)
 	}
 
+	return nil
+}
+
+// DeleteAll items from this collection.
+func (c *Collection) DeleteAll() error {
+	_, err := c.DeleteMany(c.ctx, bson.D{})
+	if err != nil {
+		return fmt.Errorf("delete all: %w", err)
+	}
 	return nil
 }
 

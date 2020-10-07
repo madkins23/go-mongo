@@ -25,6 +25,8 @@ var testValidatorJSON = `{
 	}
 }`
 
+////////////////////////////////////////////////////////////////////////////////
+
 type TestKey struct {
 	Alpha string
 	Bravo int
@@ -65,3 +67,33 @@ func (ti *testItem) Filter() bson.D {
 func (ti *testItem) Realize() error {
 	return nil
 }
+
+////////////////////////////////////////////////////////////////////////////////
+
+var (
+	testItem1 = &testItem{
+		TestKey: TestKey{
+			Alpha: "one",
+			Bravo: 1,
+		},
+		Charlie: "One is the loneliest number",
+	}
+	testItem2 = &testItem{
+		TestKey: TestKey{
+			Alpha: "two",
+			Bravo: 2,
+		},
+		Charlie: "It takes two to tango",
+	}
+	testItem3 = &testItem{
+		TestKey: TestKey{
+			Alpha: "three",
+			Bravo: 3,
+		},
+		Charlie: "Three can keep a secret if two of them are dead",
+	}
+	testKeyOfTheBeast = &TestKey{
+		Alpha: "beast",
+		Bravo: 666,
+	}
+)

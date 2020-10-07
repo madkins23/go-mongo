@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"testing"
 
+	"go.mongodb.org/mongo-driver/bson"
+
 	"github.com/stretchr/testify/suite"
 )
 
@@ -29,8 +31,12 @@ func (suite *collectionTestSuite) SetupSuite() {
 	suite.Require().NoError(suite.access.Index(suite.collection, NewIndexDescription(true, "alpha")))
 }
 
+func (suite *collectionTestSuite) TearDownTest() {
+	suite.NoError(suite.collection.DeleteAll())
+}
+
 func (suite *collectionTestSuite) TestCollectionValidator() {
-	collection, err := suite.access.Collection(context.TODO(), "mdb-collection", testValidatorJSON)
+	collection, err := suite.access.Collection(context.TODO(), "test-collection-validator", testValidatorJSON)
 	suite.Require().NoError(err)
 	suite.NotNil(collection)
 }
@@ -38,7 +44,7 @@ func (suite *collectionTestSuite) TestCollectionValidator() {
 func (suite *collectionTestSuite) TestCollectionValidatorFinisher() {
 	var finished bool
 	collection, err := suite.access.Collection(
-		context.TODO(), "mdb-collection-finisher", testValidatorJSON,
+		context.TODO(), "test-collection-validator-finisher", testValidatorJSON,
 		func(access *Access, collection *Collection) error {
 			access.Info("Running finisher")
 			finished = true
@@ -51,7 +57,7 @@ func (suite *collectionTestSuite) TestCollectionValidatorFinisher() {
 
 func (suite *collectionTestSuite) TestCollectionValidatorFinisherError() {
 	collection, err := suite.access.Collection(
-		context.TODO(), "mdb-collection-finisher-error", testValidatorJSON,
+		context.TODO(), "test-collection-validator-finisher-error", testValidatorJSON,
 		func(access *Access, collection *Collection) error {
 			return errors.New("fail")
 		})
@@ -60,61 +66,53 @@ func (suite *collectionTestSuite) TestCollectionValidatorFinisherError() {
 }
 
 func (suite *collectionTestSuite) TestCreateDuplicate() {
-	tk := &TestKey{
-		Alpha: "two",
-		Bravo: 2,
-	}
-	ti := &testItem{
-		TestKey: *tk,
-		Charlie: "Two is too much",
-	}
-	err := suite.collection.Create(ti)
+	err := suite.collection.Create(testItem1)
 	suite.Require().NoError(err)
-	item, err := suite.collection.Find(tk.Filter())
+	item, err := suite.collection.Find(testItem1.Filter())
 	suite.Require().NoError(err)
 	suite.NotNil(item)
-	err = suite.collection.Create(ti)
+	err = suite.collection.Create(testItem1)
 	suite.Require().Error(err)
 	suite.Require().True(suite.access.Duplicate(err))
 }
 
 func (suite *collectionTestSuite) TestFindNone() {
-	tk := &TestKey{
-		Alpha: "beast",
-		Bravo: 666,
-	}
-	item, err := suite.collection.Find(tk.Filter())
+	item, err := suite.collection.Find(testKeyOfTheBeast.Filter())
 	suite.Require().Error(err)
 	suite.True(suite.collection.NotFound(err))
 	suite.Nil(item)
 }
 
 func (suite *collectionTestSuite) TestCreateFindDelete() {
-	tk := &TestKey{
-		Alpha: "one",
-		Bravo: 1,
-	}
-	ti := &testItem{
-		TestKey: *tk,
-		Charlie: "One is the loneliest number",
-	}
-	err := suite.collection.Create(ti)
-	suite.Require().NoError(err)
-	item, err := suite.collection.Find(tk.Filter())
+	suite.Require().NoError(suite.collection.Create(testItem2))
+	item, err := suite.collection.Find(testItem2.Filter())
 	suite.Require().NoError(err)
 	suite.NotNil(item)
-	cacheKey := tk.CacheKey()
+	cacheKey := testItem2.CacheKey()
 	suite.NotEmpty(cacheKey)
-	err = suite.collection.Delete(tk.Filter(), false)
+	err = suite.collection.Delete(testItem2.Filter(), false)
 	suite.Require().NoError(err)
-	noItem, err := suite.collection.Find(tk.Filter())
+	noItem, err := suite.collection.Find(testItem2.Filter())
 	suite.Require().Error(err)
 	suite.True(suite.collection.NotFound(err))
 	suite.Nil(noItem)
-	err = suite.collection.Delete(tk.Filter(), false)
+	err = suite.collection.Delete(testItem2.Filter(), false)
 	suite.Require().Error(err)
-	err = suite.collection.Delete(tk.Filter(), true)
+	err = suite.collection.Delete(testItem2.Filter(), true)
 	suite.Require().NoError(err)
+}
+
+func (suite *collectionTestSuite) TestCountDeleteAll() {
+	suite.Require().NoError(suite.collection.Create(testItem1))
+	suite.Require().NoError(suite.collection.Create(testItem2))
+	suite.Require().NoError(suite.collection.Create(testItem3))
+	count, err := suite.collection.Count(bson.D{})
+	suite.NoError(err)
+	suite.Equal(int64(3), count)
+	suite.NoError(suite.collection.DeleteAll())
+	count, err = suite.collection.Count(bson.D{})
+	suite.NoError(err)
+	suite.Equal(int64(0), count)
 }
 
 func (suite *collectionTestSuite) TestStringValuesFor() {
