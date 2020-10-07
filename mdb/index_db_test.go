@@ -20,7 +20,7 @@ func TestIndexSuite(t *testing.T) {
 
 func (suite *indexTestSuite) SetupTest() {
 	var err error
-	suite.collection, err = suite.access.Collection("test-index-collection", testValidatorJSON)
+	suite.collection, err = suite.access.Collection(context.TODO(), "test-index-collection", testValidatorJSON)
 	suite.Require().NoError(err)
 	suite.NotNil(suite.collection)
 }
@@ -59,7 +59,7 @@ func (suite *indexTestSuite) TestIndexThree() {
 
 func (suite *indexTestSuite) TestIndexFinisher() {
 	index := NewIndexDescription(true, "alpha", "bravo")
-	collection, err := suite.access.Collection("test-index-finisher-collection",
+	collection, err := suite.access.Collection(context.TODO(), "test-index-finisher-collection",
 		testValidatorJSON, index.Finisher())
 	suite.Require().NoError(err)
 	suite.NotNil(collection)

@@ -23,11 +23,11 @@ func TestCacheSuite(t *testing.T) {
 func (suite *cacheTestSuite) SetupSuite() {
 	var err error
 	suite.AccessTestSuite.SetupSuite()
-	suite.collection, err = suite.access.Collection("test-cache-collection", testValidatorJSON)
+	suite.collection, err = suite.access.Collection(context.TODO(), "test-cache-collection", testValidatorJSON)
 	suite.Require().NoError(err)
 	suite.NotNil(suite.collection)
 	suite.Require().NoError(suite.access.Index(suite.collection, NewIndexDescription(true, "alpha")))
-	suite.cache = NewCachedCollection(suite.collection, context.TODO(), &testItem{}, time.Hour)
+	suite.cache = NewCachedCollection(suite.collection, &testItem{}, time.Hour)
 }
 
 func (suite *cacheTestSuite) TestFindNone() {
@@ -71,31 +71,6 @@ func (suite *cacheTestSuite) TestCreateFindDelete() {
 	suite.Require().Error(err)
 	err = suite.cache.Delete(tk, true)
 	suite.Require().NoError(err)
-}
-
-func (suite *cacheTestSuite) TestCreateDuplicate() {
-	tk := &TestKey{
-		Alpha: "two",
-		Bravo: 2,
-	}
-	ti := &testItem{
-		TestKey: *tk,
-		Charlie: "Two is too much",
-	}
-	err := suite.cache.Create(ti)
-	suite.Require().NoError(err)
-	item, err := suite.cache.Find(tk)
-	suite.Require().NoError(err)
-	suite.NotNil(item)
-	err = suite.cache.Create(ti)
-	suite.Require().Error(err)
-	suite.Require().True(suite.access.Duplicate(err))
-	cacheKey := tk.CacheKey()
-	_, ok := suite.cache.cache[cacheKey]
-	suite.True(ok)
-	suite.cache.InvalidateByPrefix("two")
-	_, ok = suite.cache.cache[cacheKey]
-	suite.False(ok)
 }
 
 func (suite *cacheTestSuite) TestFindOrCreate() {

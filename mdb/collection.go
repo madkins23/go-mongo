@@ -1,6 +1,7 @@
 package mdb
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -40,8 +41,14 @@ func (a *Access) CollectionExists(name string) (bool, error) {
 // CollectionFinisher provides a way to add special processing when creating a collection.
 type CollectionFinisher func(access *Access, collection *Collection) error
 
+type Collection struct {
+	*Access
+	*mongo.Collection
+	ctx context.Context
+}
+
 // Collection acquires the named collection, creating it if necessary.
-func (a *Access) Collection(collectionName string, validatorJSON string, finishers ...CollectionFinisher) (*Collection, error) {
+func (a *Access) Collection(ctx context.Context, collectionName string, validatorJSON string, finishers ...CollectionFinisher) (*Collection, error) {
 	if exists, err := a.CollectionExists(collectionName); err != nil {
 		return nil, fmt.Errorf("does collection '%s' exist: %w", collectionName, err)
 	} else if exists {
@@ -81,9 +88,41 @@ func (a *Access) Collection(collectionName string, validatorJSON string, finishe
 	return collection, nil
 }
 
-type Collection struct {
-	*Access
-	*mongo.Collection
+// Create item in DB.
+func (c *Collection) Create(item interface{}) error {
+	if _, err := c.InsertOne(c.ctx, item); err != nil {
+		return fmt.Errorf("insert item: %w", err)
+	}
+
+	return nil
+}
+
+// Delete item from DB.
+// Set idempotent to true to avoid errors if the item does not exist.
+func (c *Collection) Delete(filter bson.D, idempotent bool) error {
+	result, err := c.DeleteOne(c.ctx, filter)
+	if err != nil {
+		return fmt.Errorf("delete item: %w", err)
+	}
+	if result.DeletedCount > 1 || (result.DeletedCount == 0 && !idempotent) {
+		// Should have deleted a single item or none if idempotent flag set.
+		return fmt.Errorf("deleted %d items", result.DeletedCount)
+	}
+
+	return nil
+}
+
+// Find a cacheable object in either cache or database.
+func (c *Collection) Find(filter bson.D) (interface{}, error) {
+	var item interface{}
+	if err := c.FindOne(c.ctx, filter).Decode(&item); err != nil {
+		if c.NotFound(err) {
+			return nil, fmt.Errorf("no item '%v': %w", filter, err)
+		}
+		return nil, fmt.Errorf("find item '%v': %w", filter, err)
+	}
+
+	return item, nil
 }
 
 var errNotString = errors.New("value not a string")

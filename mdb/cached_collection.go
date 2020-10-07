@@ -1,7 +1,6 @@
 package mdb
 
 import (
-	"context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -15,14 +14,12 @@ import (
 type CachedCollection struct {
 	*Collection
 	cache       map[string]Cacheable
-	ctx         context.Context
 	itemType    reflect.Type // if only we had generics
 	expireAfter time.Duration
 }
 
 func NewCachedCollection(
-	collection *Collection,
-	ctx context.Context, example Cacheable, expireAfter time.Duration) *CachedCollection {
+	collection *Collection, example Cacheable, expireAfter time.Duration) *CachedCollection {
 	exampleType := reflect.TypeOf(example)
 	if exampleType != nil && exampleType.Kind() == reflect.Ptr {
 		exampleType = exampleType.Elem()
@@ -30,7 +27,6 @@ func NewCachedCollection(
 	return &CachedCollection{
 		Collection:  collection,
 		cache:       make(map[string]Cacheable),
-		ctx:         ctx,
 		itemType:    exampleType,
 		expireAfter: expireAfter,
 	}
@@ -56,29 +52,10 @@ type Searchable interface {
 	Filter() bson.D
 }
 
-// Create object in DB but not cache.
-func (c *CachedCollection) Create(item interface{}) error {
-	if _, err := c.InsertOne(c.ctx, item); err != nil {
-		return fmt.Errorf("insert item: %w", err)
-	}
-
-	return nil
-}
-
 // Delete object in cache and DB.
 func (c *CachedCollection) Delete(item Searchable, idempotent bool) error {
 	delete(c.cache, item.CacheKey())
-
-	result, err := c.DeleteOne(c.ctx, item.Filter())
-	if err != nil {
-		return fmt.Errorf("delete item: %w", err)
-	}
-	if result.DeletedCount > 1 || (result.DeletedCount == 0 && !idempotent) {
-		// Should have deleted a single item or none if idempotent flag set.
-		return fmt.Errorf("deleted %d items", result.DeletedCount)
-	}
-
-	return nil
+	return c.Collection.Delete(item.Filter(), idempotent)
 }
 
 // Find a cacheable object in either cache or database.
@@ -105,7 +82,7 @@ func (c *CachedCollection) Find(searchFor Searchable) (Cacheable, error) {
 		}
 
 		if err = item.Realize(); err != nil {
-			return nil, fmt.Errorf("init from: %w", err)
+			return nil, fmt.Errorf("realize item: %w", err)
 		}
 		item.ExpireAfter(c.expireAfter)
 		c.cache[cacheKey] = item
@@ -138,7 +115,7 @@ func (c *CachedCollection) FindOrCreate(cacheItem Cacheable) (Cacheable, error) 
 
 // Instantiate the Cacheable item specified by the item type.
 func (c *CachedCollection) Instantiate() Cacheable {
-	// TODO: can we assume that the item type will return an Cacheable?
+	// TODO: can we assume that the item type will return a Cacheable?
 	return reflect.New(c.itemType).Interface().(Cacheable)
 }
 
