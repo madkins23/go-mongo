@@ -48,7 +48,8 @@ type Collection struct {
 }
 
 // Collection acquires the named collection, creating it if necessary.
-func (a *Access) Collection(ctx context.Context, collectionName string, validatorJSON string, finishers ...CollectionFinisher) (*Collection, error) {
+func (a *Access) Collection(
+	ctx context.Context, collectionName string, validatorJSON string, finishers ...CollectionFinisher) (*Collection, error) {
 	if exists, err := a.CollectionExists(collectionName); err != nil {
 		return nil, fmt.Errorf("does collection '%s' exist: %w", collectionName, err)
 	} else if exists {
@@ -75,7 +76,10 @@ func (a *Access) Collection(ctx context.Context, collectionName string, validato
 			return nil, fmt.Errorf("create collection: %w", err)
 		}
 	}
-	collection := &Collection{Access: a, Collection: a.database.Collection(collectionName)}
+	collection := &Collection{
+		Access:     a,
+		Collection: a.database.Collection(collectionName),
+	}
 	a.Info("Created collection " + collection.Name())
 
 	// Run finishers on the collection.
@@ -112,7 +116,8 @@ func (c *Collection) Delete(filter bson.D, idempotent bool) error {
 	return nil
 }
 
-// Find a cacheable object in either cache or database.
+// Find an item in the database and return it as a blank interface.
+// The result will likely contain bson objects.
 func (c *Collection) Find(filter bson.D) (interface{}, error) {
 	var item interface{}
 	if err := c.FindOne(c.ctx, filter).Decode(&item); err != nil {

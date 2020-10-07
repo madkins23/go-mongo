@@ -1,6 +1,7 @@
 package mdb
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -9,26 +10,19 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-// CachedCollection Mongo-stored objects so that the same object is always returned.
+// CachedCollection caches Mongo-stored objects so that the same object is always returned.
 // This is most useful for objects that change rarely.
 type CachedCollection struct {
-	*Collection
+	*TypedCollection
 	cache       map[string]Cacheable
-	itemType    reflect.Type // if only we had generics
 	expireAfter time.Duration
 }
 
-func NewCachedCollection(
-	collection *Collection, example Cacheable, expireAfter time.Duration) *CachedCollection {
-	exampleType := reflect.TypeOf(example)
-	if exampleType != nil && exampleType.Kind() == reflect.Ptr {
-		exampleType = exampleType.Elem()
-	}
+func NewCachedCollection(collection *Collection, example interface{}, expireAfter time.Duration) *CachedCollection {
 	return &CachedCollection{
-		Collection:  collection,
-		cache:       make(map[string]Cacheable),
-		itemType:    exampleType,
-		expireAfter: expireAfter,
+		TypedCollection: NewTypedCollection(collection, example),
+		cache:           make(map[string]Cacheable),
+		expireAfter:     expireAfter,
 	}
 }
 
@@ -42,7 +36,7 @@ type Cacheable interface {
 type Loadable interface {
 	ExpireAfter(duration time.Duration)
 	Expired() bool
-	Realize() error
+	Realizable
 }
 
 // Searchable may be used just for searching for a cached item.
@@ -58,9 +52,11 @@ func (c *CachedCollection) Delete(item Searchable, idempotent bool) error {
 	return c.Collection.Delete(item.Filter(), idempotent)
 }
 
+var errItemNotCacheable = errors.New("item not cacheable")
+
 // Find a cacheable object in either cache or database.
 func (c *CachedCollection) Find(searchFor Searchable) (Cacheable, error) {
-	var found bool
+	var found, ok bool
 	var item Cacheable
 
 	cacheKey := searchFor.CacheKey()
@@ -72,18 +68,17 @@ func (c *CachedCollection) Find(searchFor Searchable) (Cacheable, error) {
 	}
 
 	if !found {
-		item = c.Instantiate()
-		err := c.FindOne(c.ctx, searchFor.Filter()).Decode(item)
+		itemIF, err := c.TypedCollection.Find(searchFor.Filter())
 		if err != nil {
 			if c.NotFound(err) {
 				return nil, fmt.Errorf("no item '%s': %w", cacheKey, err)
 			}
 			return nil, fmt.Errorf("find item '%s': %w", cacheKey, err)
 		}
-
-		if err = item.Realize(); err != nil {
-			return nil, fmt.Errorf("realize item: %w", err)
+		if item, ok = itemIF.(Cacheable); !ok {
+			return nil, errItemNotCacheable
 		}
+
 		item.ExpireAfter(c.expireAfter)
 		c.cache[cacheKey] = item
 	}

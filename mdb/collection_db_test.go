@@ -29,12 +29,6 @@ func (suite *collectionTestSuite) SetupSuite() {
 	suite.Require().NoError(suite.access.Index(suite.collection, NewIndexDescription(true, "alpha")))
 }
 
-func (suite *collectionTestSuite) TestCollection() {
-	collection, err := suite.access.Collection(context.TODO(), "mdb-collection", "")
-	suite.Require().NoError(err)
-	suite.NotNil(collection)
-}
-
 func (suite *collectionTestSuite) TestCollectionValidator() {
 	collection, err := suite.access.Collection(context.TODO(), "mdb-collection", testValidatorJSON)
 	suite.Require().NoError(err)

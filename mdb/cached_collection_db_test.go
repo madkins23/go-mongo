@@ -12,8 +12,7 @@ import (
 
 type cacheTestSuite struct {
 	AccessTestSuite
-	cache      *CachedCollection
-	collection *Collection
+	cache *CachedCollection
 }
 
 func TestCacheSuite(t *testing.T) {
@@ -21,13 +20,12 @@ func TestCacheSuite(t *testing.T) {
 }
 
 func (suite *cacheTestSuite) SetupSuite() {
-	var err error
 	suite.AccessTestSuite.SetupSuite()
-	suite.collection, err = suite.access.Collection(context.TODO(), "test-cache-collection", testValidatorJSON)
+	collection, err := suite.access.Collection(context.TODO(), "test-cache-collection", testValidatorJSON)
 	suite.Require().NoError(err)
-	suite.NotNil(suite.collection)
-	suite.Require().NoError(suite.access.Index(suite.collection, NewIndexDescription(true, "alpha")))
-	suite.cache = NewCachedCollection(suite.collection, &testItem{}, time.Hour)
+	suite.NotNil(collection)
+	suite.Require().NoError(suite.access.Index(collection, NewIndexDescription(true, "alpha")))
+	suite.cache = NewCachedCollection(collection, &testItem{}, time.Hour)
 }
 
 func (suite *cacheTestSuite) TestFindNone() {
