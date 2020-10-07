@@ -8,9 +8,8 @@ import (
 	"fmt"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson"
-
 	"github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 type collectionTestSuite struct {
@@ -113,6 +112,46 @@ func (suite *collectionTestSuite) TestCountDeleteAll() {
 	count, err = suite.collection.Count(bson.D{})
 	suite.NoError(err)
 	suite.Equal(int64(0), count)
+}
+
+func (suite *collectionTestSuite) TestIterate() {
+	suite.Require().NoError(suite.collection.Create(testItem1))
+	suite.Require().NoError(suite.collection.Create(testItem2))
+	suite.Require().NoError(suite.collection.Create(testItem3))
+	count := 0
+	alpha := []string{}
+	suite.NoError(suite.collection.Iterate(bson.D{}, func(item interface{}) error {
+		if bd, ok := item.(bson.D); ok {
+			m := bd.Map()
+			if a, ok := m["alpha"].(string); ok {
+				alpha = append(alpha, a)
+			}
+		}
+		count++
+		return nil
+	}))
+	suite.Equal(3, count)
+	suite.Equal([]string{"one", "two", "three"}, alpha)
+}
+
+func (suite *collectionTestSuite) TestIterateFiltered() {
+	suite.Require().NoError(suite.collection.Create(testItem1))
+	suite.Require().NoError(suite.collection.Create(testItem2))
+	suite.Require().NoError(suite.collection.Create(testItem3))
+	count := 0
+	alpha := []string{}
+	suite.NoError(suite.collection.Iterate(bson.D{bson.E{Key: "alpha", Value: "one"}}, func(item interface{}) error {
+		if bd, ok := item.(bson.D); ok {
+			m := bd.Map()
+			if a, ok := m["alpha"].(string); ok {
+				alpha = append(alpha, a)
+			}
+		}
+		count++
+		return nil
+	}))
+	suite.Equal(1, count)
+	suite.Equal([]string{"one"}, alpha)
 }
 
 func (suite *collectionTestSuite) TestStringValuesFor() {

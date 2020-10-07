@@ -148,6 +148,25 @@ func (c *Collection) Find(filter bson.D) (interface{}, error) {
 	return item, nil
 }
 
+// Iterate over a set of items, applying the specified function to each one.
+// The items passed to the function will likely contain bson objects.
+func (c *Collection) Iterate(filter bson.D, fn func(item interface{}) error) error {
+	if cursor, err := c.Collection.Find(c.ctx, filter); err != nil {
+		return fmt.Errorf("find items: %w", err)
+	} else {
+		var item interface{}
+		for cursor.Next(c.ctx) {
+			if err := cursor.Decode(&item); err != nil {
+				return fmt.Errorf("decode item: %w", err)
+			} else if err := fn(item); err != nil {
+				return fmt.Errorf("apply function: %w", err)
+			}
+		}
+	}
+
+	return nil
+}
+
 var errNotString = errors.New("value not a string")
 
 func (c *Collection) StringValuesFor(field string, filter bson.D) ([]string, error) {

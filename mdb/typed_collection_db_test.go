@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 type typedTestSuite struct {
@@ -67,4 +68,38 @@ func (suite *typedTestSuite) TestCreateFindDelete() {
 	suite.Require().Error(err)
 	err = suite.typed.Delete(testItem2.Filter(), true)
 	suite.Require().NoError(err)
+}
+
+func (suite *typedTestSuite) TestIterate() {
+	suite.Require().NoError(suite.typed.Create(testItem1))
+	suite.Require().NoError(suite.typed.Create(testItem2))
+	suite.Require().NoError(suite.typed.Create(testItem3))
+	count := 0
+	alpha := []string{}
+	suite.NoError(suite.typed.Iterate(bson.D{}, func(item interface{}) error {
+		if ti, ok := item.(*testItem); ok {
+			alpha = append(alpha, ti.Alpha)
+		}
+		count++
+		return nil
+	}))
+	suite.Equal(3, count)
+	suite.Equal([]string{"one", "two", "three"}, alpha)
+}
+
+func (suite *typedTestSuite) TestIterateFiltered() {
+	suite.Require().NoError(suite.typed.Create(testItem1))
+	suite.Require().NoError(suite.typed.Create(testItem2))
+	suite.Require().NoError(suite.typed.Create(testItem3))
+	count := 0
+	alpha := []string{}
+	suite.NoError(suite.typed.Iterate(bson.D{bson.E{Key: "bravo", Value: 2}}, func(item interface{}) error {
+		if ti, ok := item.(*testItem); ok {
+			alpha = append(alpha, ti.Alpha)
+		}
+		count++
+		return nil
+	}))
+	suite.Equal(1, count)
+	suite.Equal([]string{"two"}, alpha)
 }
