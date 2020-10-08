@@ -44,9 +44,10 @@ func (tk *TestKey) Filter() bson.D {
 }
 
 type testItem struct {
-	TestKey `bson:"inline"`
-	Charlie string
-	expires time.Time
+	TestKey  `bson:"inline"`
+	Charlie  string
+	Realized bool
+	expires  time.Time
 }
 
 func (ti *testItem) ExpireAfter(duration time.Duration) {
@@ -65,6 +66,7 @@ func (ti *testItem) Filter() bson.D {
 }
 
 func (ti *testItem) Realize() error {
+	ti.Realized = true
 	return nil
 }
 

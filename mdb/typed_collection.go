@@ -61,7 +61,15 @@ func (c *TypedCollection) Iterate(filter bson.D, fn func(item interface{}) error
 		for cursor.Next(c.ctx) {
 			if err := cursor.Decode(item); err != nil {
 				return fmt.Errorf("decode item: %w", err)
-			} else if err := fn(item); err != nil {
+			}
+
+			if realizable, ok := item.(Realizable); ok {
+				if err := realizable.Realize(); err != nil {
+					return fmt.Errorf("realize item: %w", err)
+				}
+			}
+
+			if err := fn(item); err != nil {
 				return fmt.Errorf("apply function: %w", err)
 			}
 		}

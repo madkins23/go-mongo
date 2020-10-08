@@ -56,6 +56,9 @@ func (suite *typedTestSuite) TestCreateFindDelete() {
 	item, err := suite.typed.Find(testItem2.Filter())
 	suite.Require().NoError(err)
 	suite.NotNil(item)
+	ti, ok := item.(*testItem)
+	suite.Require().True(ok)
+	suite.True(ti.Realized)
 	cacheKey := testItem2.CacheKey()
 	suite.NotEmpty(cacheKey)
 	err = suite.typed.Delete(testItem2.Filter(), false)
@@ -77,9 +80,10 @@ func (suite *typedTestSuite) TestIterate() {
 	count := 0
 	alpha := []string{}
 	suite.NoError(suite.typed.Iterate(bson.D{}, func(item interface{}) error {
-		if ti, ok := item.(*testItem); ok {
-			alpha = append(alpha, ti.Alpha)
-		}
+		ti, ok := item.(*testItem)
+		suite.Require().True(ok)
+		suite.True(ti.Realized)
+		alpha = append(alpha, ti.Alpha)
 		count++
 		return nil
 	}))
@@ -94,9 +98,10 @@ func (suite *typedTestSuite) TestIterateFiltered() {
 	count := 0
 	alpha := []string{}
 	suite.NoError(suite.typed.Iterate(bson.D{bson.E{Key: "bravo", Value: 2}}, func(item interface{}) error {
-		if ti, ok := item.(*testItem); ok {
-			alpha = append(alpha, ti.Alpha)
-		}
+		ti, ok := item.(*testItem)
+		suite.Require().True(ok)
+		suite.True(ti.Realized)
+		alpha = append(alpha, ti.Alpha)
 		count++
 		return nil
 	}))
