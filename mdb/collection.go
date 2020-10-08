@@ -77,6 +77,9 @@ func (a *Access) Collection(
 			return nil, fmt.Errorf("create collection: %w", err)
 		}
 	}
+	if ctx == nil {
+		ctx = createCtx
+	}
 	collection := &Collection{
 		Access:     a,
 		Collection: a.database.Collection(collectionName),
