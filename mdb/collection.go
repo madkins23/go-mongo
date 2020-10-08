@@ -78,7 +78,7 @@ func (a *Access) Collection(
 		}
 	}
 	if ctx == nil {
-		ctx = createCtx
+		ctx = a.Context()
 	}
 	collection := &Collection{
 		Access:     a,
