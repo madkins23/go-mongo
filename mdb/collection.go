@@ -68,9 +68,10 @@ func (a *Access) Collection(
 	}
 
 	// Create collection.
-	ctx, cancel := a.ContextWithTimeout(a.config.Timeout.Collection)
+
+	createCtx, cancel := a.ContextWithTimeout(a.config.Timeout.Collection)
 	defer cancel()
-	err := a.database.CreateCollection(ctx, collectionName, opts...)
+	err := a.database.CreateCollection(createCtx, collectionName, opts...)
 	if err != nil {
 		if cmdErr, ok := err.(mongo.CommandError); !ok || !cmdErr.HasErrorLabel("NamespaceExists") {
 			return nil, fmt.Errorf("create collection: %w", err)
@@ -79,6 +80,7 @@ func (a *Access) Collection(
 	collection := &Collection{
 		Access:     a,
 		Collection: a.database.Collection(collectionName),
+		ctx:        ctx,
 	}
 	a.Info("Created collection " + collection.Name())
 
