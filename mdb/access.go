@@ -57,6 +57,7 @@ type Config struct {
 
 	// Logging function for information messages may be overridden.
 	LogInfoFn func(msg string)
+	// Errors should bubble up and be handled by client code.
 
 	Timeout
 }
@@ -224,6 +225,7 @@ func (a *Access) Ping() error {
 // Info prints a simple message in the format MDB: <msg>.
 // This is used for a few calls within the Access code.
 // It may be overridden to use another logger or to block these messages.
+// TODO(mAdkins): How to override this since Access is returned from Connect()?
 func (a *Access) Info(msg string) {
 	a.config.LogInfoFn(msg)
 }
