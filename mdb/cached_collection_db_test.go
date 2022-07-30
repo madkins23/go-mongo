@@ -1,3 +1,4 @@
+//go:build database
 // +build database
 
 package mdb
@@ -35,7 +36,7 @@ func (suite *cacheTestSuite) TearDownTest() {
 func (suite *cacheTestSuite) TestFindNone() {
 	item, err := suite.cache.Find(testKeyOfTheBeast)
 	suite.Require().Error(err)
-	suite.True(suite.cache.NotFound(err))
+	suite.True(suite.cache.IsNotFound(err))
 	suite.Nil(item)
 }
 
@@ -58,7 +59,7 @@ func (suite *cacheTestSuite) TestCreateFindDelete() {
 	suite.False(ok)
 	noItem, err := suite.cache.Find(testItem1)
 	suite.Require().Error(err)
-	suite.True(suite.cache.NotFound(err))
+	suite.True(suite.cache.IsNotFound(err))
 	suite.Nil(noItem)
 	err = suite.cache.Delete(testItem1, false)
 	suite.Require().Error(err)
@@ -69,7 +70,7 @@ func (suite *cacheTestSuite) TestCreateFindDelete() {
 func (suite *cacheTestSuite) TestFindOrCreate() {
 	item, err := suite.cache.Find(testItem2)
 	suite.Require().Error(err)
-	suite.True(suite.cache.NotFound(err))
+	suite.True(suite.cache.IsNotFound(err))
 	suite.Nil(item)
 	item, err = suite.cache.FindOrCreate(testItem2)
 	suite.Require().NoError(err)

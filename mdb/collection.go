@@ -144,7 +144,7 @@ func (c *Collection) DeleteAll() error {
 func (c *Collection) Find(filter bson.D) (interface{}, error) {
 	var item interface{}
 	if err := c.FindOne(c.ctx, filter).Decode(&item); err != nil {
-		if c.NotFound(err) {
+		if c.IsNotFound(err) {
 			return nil, fmt.Errorf("no item '%v': %w", filter, err)
 		}
 		return nil, fmt.Errorf("find item '%v': %w", filter, err)

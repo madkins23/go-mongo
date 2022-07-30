@@ -1,3 +1,4 @@
+//go:build database
 // +build database
 
 package mdb
@@ -40,13 +41,13 @@ func (suite *typedTestSuite) TestCreateDuplicate() {
 	suite.NotNil(item)
 	err = suite.typed.Create(testItem1)
 	suite.Require().Error(err)
-	suite.Require().True(suite.access.Duplicate(err))
+	suite.Require().True(suite.access.IsDuplicate(err))
 }
 
 func (suite *typedTestSuite) TestFindNone() {
 	item, err := suite.typed.Find(testKeyOfTheBeast.Filter())
 	suite.Require().Error(err)
-	suite.True(suite.typed.NotFound(err))
+	suite.True(suite.typed.IsNotFound(err))
 	suite.Nil(item)
 }
 
@@ -65,7 +66,7 @@ func (suite *typedTestSuite) TestCreateFindDelete() {
 	suite.Require().NoError(err)
 	noItem, err := suite.typed.Find(testItem2.Filter())
 	suite.Require().Error(err)
-	suite.True(suite.typed.NotFound(err))
+	suite.True(suite.typed.IsNotFound(err))
 	suite.Nil(noItem)
 	err = suite.typed.Delete(testItem2.Filter(), false)
 	suite.Require().Error(err)

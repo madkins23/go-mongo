@@ -70,7 +70,7 @@ func (c *CachedCollection) Find(searchFor Searchable) (Cacheable, error) {
 	if !found {
 		itemIF, err := c.TypedCollection.Find(searchFor.Filter())
 		if err != nil {
-			if c.NotFound(err) {
+			if c.IsNotFound(err) {
 				return nil, fmt.Errorf("no item '%s': %w", cacheKey, err)
 			}
 			return nil, fmt.Errorf("find item '%s': %w", cacheKey, err)
@@ -90,7 +90,7 @@ func (c *CachedCollection) Find(searchFor Searchable) (Cacheable, error) {
 func (c *CachedCollection) FindOrCreate(cacheItem Cacheable) (Cacheable, error) {
 	item, err := c.Find(cacheItem)
 	if err != nil {
-		if !c.NotFound(err) {
+		if !c.IsNotFound(err) {
 			return nil, err
 		}
 

@@ -36,7 +36,7 @@ func (c *TypedCollection) Find(filter bson.D) (interface{}, error) {
 	item := c.Instantiate()
 	err := c.FindOne(c.ctx, filter).Decode(item)
 	if err != nil {
-		if c.NotFound(err) {
+		if c.IsNotFound(err) {
 			return nil, fmt.Errorf("no item '%v': %w", filter, err)
 		}
 		return nil, fmt.Errorf("find item '%v': %w", filter, err)

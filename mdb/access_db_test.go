@@ -1,3 +1,4 @@
+//go:build database
 // +build database
 
 package mdb

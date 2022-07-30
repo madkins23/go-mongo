@@ -20,27 +20,27 @@ type Access struct {
 }
 
 var (
-	// Default connection URI if not provided in Config.Options.
+	// DefaultURI is the default connection URI if not provided in Config.Options.
 	DefaultURI = "mongodb://localhost:27017"
 
-	// Default info logging function.
+	// DefaultLogInfoFn is the default info logging function.
 	DefaultLogInfoFn = func(msg string) {
 		fmt.Printf("MDB: %s\n", msg)
 	}
 
-	// Default timeout for the initial connect.
+	// DefaultConnectTimeout is the default timeout for the initial connect.
 	DefaultConnectTimeout = 10 * time.Second
 
-	// Default timeout for the disconnect.
+	// DefaultDisconnectTimeout is the default timeout for the disconnect.
 	DefaultDisconnectTimeout = 10 * time.Second
 
-	// Default timeout for the ping to make sure the connection is up.
+	// DefaultPingTimeout is the default timeout for the ping to make sure the connection is up.
 	DefaultPingTimeout = 2 * time.Second
 
-	// Default timeout for collection access.
+	// DefaultCollectionTimeout is the default timeout for collection access.
 	DefaultCollectionTimeout = time.Second
 
-	// Default timeout for index access.
+	// DefaultIndexTimeout is the default timeout for index access.
 	DefaultIndexTimeout = 5 * time.Second
 )
 
@@ -79,11 +79,16 @@ type Timeout struct {
 	Index time.Duration
 }
 
+var ErrNoDbName = errors.New("no database name")
+
 // Connect to Mongo DB and return Access object.
 // If the ctxt is nil it will be provided as context.Background().
 // If the url is empty it will be set to mdb.DefaultURI.
-// If the dbName is empty it will be set to mdb.DefaultDatabase.
 func Connect(dbName string, config *Config) (*Access, error) {
+	if dbName == "" {
+		return nil, ErrNoDbName
+	}
+
 	config = fixConfig(config)
 	ctx, cancel := context.WithTimeout(config.Ctx, config.Timeout.Connect)
 	defer cancel()
@@ -148,17 +153,18 @@ func (a *Access) Context() context.Context {
 	return a.config.Ctx
 }
 
-// Context returns the base context for the object with the specified timeout.
+// ContextWithTimeout returns the base context for the object with the specified timeout.
 func (a *Access) ContextWithTimeout(timeout time.Duration) (context.Context, context.CancelFunc) {
 	return context.WithTimeout(a.config.Ctx, timeout)
 }
 
-// Client returns the Mongo database object.
+// Database returns the Mongo database object.
 func (a *Access) Database() *mongo.Database {
 	return a.database
 }
 
-func (a *Access) Duplicate(err error) bool {
+// IsDuplicate checks to see if the specified error is for a duplicate something.
+func (a *Access) IsDuplicate(err error) bool {
 	if err == nil {
 		return false
 	}
@@ -175,8 +181,8 @@ func (a *Access) Duplicate(err error) bool {
 	return false
 }
 
-// NotFound checks an error condition to see if it matches the underlying database "not found" error.
-func (a *Access) NotFound(err error) bool {
+// IsNotFound checks an error condition to see if it matches the underlying database "not found" error.
+func (a *Access) IsNotFound(err error) bool {
 	if err == nil {
 		return false
 	}
@@ -184,7 +190,8 @@ func (a *Access) NotFound(err error) bool {
 	return errors.Is(err, mongo.ErrNoDocuments)
 }
 
-func (a *Access) ValidationFailure(err error) bool {
+// IsValidationFailure checks to see if the specified error is for a validation failure.
+func (a *Access) IsValidationFailure(err error) bool {
 	if err == nil {
 		return false
 	}
