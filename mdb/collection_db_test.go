@@ -11,6 +11,8 @@ import (
 
 	"github.com/stretchr/testify/suite"
 	"go.mongodb.org/mongo-driver/bson"
+
+	"github.com/madkins23/go-mongo/test"
 )
 
 type collectionTestSuite struct {
@@ -25,7 +27,7 @@ func TestCollectionSuite(t *testing.T) {
 func (suite *collectionTestSuite) SetupSuite() {
 	var err error
 	suite.AccessTestSuite.SetupSuite()
-	suite.collection, err = suite.access.Collection(context.TODO(), "test-collection", testValidatorJSON)
+	suite.collection, err = suite.access.Collection(context.TODO(), "test-collection", test.SimpleValidatorJSON)
 	suite.Require().NoError(err)
 	suite.NotNil(suite.collection)
 	suite.Require().NoError(suite.access.Index(suite.collection, NewIndexDescription(true, "alpha")))
@@ -36,7 +38,7 @@ func (suite *collectionTestSuite) TearDownTest() {
 }
 
 func (suite *collectionTestSuite) TestCollectionValidator() {
-	collection, err := suite.access.Collection(context.TODO(), "test-collection-validator", testValidatorJSON)
+	collection, err := suite.access.Collection(context.TODO(), "test-collection-validator", test.SimpleValidatorJSON)
 	suite.Require().NoError(err)
 	suite.NotNil(collection)
 }
@@ -44,7 +46,7 @@ func (suite *collectionTestSuite) TestCollectionValidator() {
 func (suite *collectionTestSuite) TestCollectionValidatorFinisher() {
 	var finished bool
 	collection, err := suite.access.Collection(
-		context.TODO(), "test-collection-validator-finisher", testValidatorJSON,
+		context.TODO(), "test-collection-validator-finisher", test.SimpleValidatorJSON,
 		func(access *Access, collection *Collection) error {
 			access.Info("Running finisher")
 			finished = true
@@ -57,7 +59,7 @@ func (suite *collectionTestSuite) TestCollectionValidatorFinisher() {
 
 func (suite *collectionTestSuite) TestCollectionValidatorFinisherError() {
 	collection, err := suite.access.Collection(
-		context.TODO(), "test-collection-validator-finisher-error", testValidatorJSON,
+		context.TODO(), "test-collection-validator-finisher-error", test.SimpleValidatorJSON,
 		func(access *Access, collection *Collection) error {
 			return errors.New("fail")
 		})
@@ -66,46 +68,46 @@ func (suite *collectionTestSuite) TestCollectionValidatorFinisherError() {
 }
 
 func (suite *collectionTestSuite) TestCreateDuplicate() {
-	err := suite.collection.Create(testItem1)
+	err := suite.collection.Create(test.SimpleItem1)
 	suite.Require().NoError(err)
-	item, err := suite.collection.Find(testItem1.Filter())
+	item, err := suite.collection.Find(test.SimpleItem1.Filter())
 	suite.Require().NoError(err)
 	suite.NotNil(item)
-	err = suite.collection.Create(testItem1)
+	err = suite.collection.Create(test.SimpleItem1)
 	suite.Require().Error(err)
 	suite.Require().True(suite.access.IsDuplicate(err))
 }
 
 func (suite *collectionTestSuite) TestFindNone() {
-	item, err := suite.collection.Find(testKeyOfTheBeast.Filter())
+	item, err := suite.collection.Find(test.SimpleKeyOfTheBeast.Filter())
 	suite.Require().Error(err)
 	suite.True(suite.collection.IsNotFound(err))
 	suite.Nil(item)
 }
 
 func (suite *collectionTestSuite) TestCreateFindDelete() {
-	suite.Require().NoError(suite.collection.Create(testItem2))
-	item, err := suite.collection.Find(testItem2.Filter())
+	suite.Require().NoError(suite.collection.Create(test.SimpleItem2))
+	item, err := suite.collection.Find(test.SimpleItem2.Filter())
 	suite.Require().NoError(err)
 	suite.NotNil(item)
-	cacheKey := testItem2.CacheKey()
+	cacheKey := test.SimpleItem2.CacheKey()
 	suite.NotEmpty(cacheKey)
-	err = suite.collection.Delete(testItem2.Filter(), false)
+	err = suite.collection.Delete(test.SimpleItem2.Filter(), false)
 	suite.Require().NoError(err)
-	noItem, err := suite.collection.Find(testItem2.Filter())
+	noItem, err := suite.collection.Find(test.SimpleItem2.Filter())
 	suite.Require().Error(err)
 	suite.True(suite.collection.IsNotFound(err))
 	suite.Nil(noItem)
-	err = suite.collection.Delete(testItem2.Filter(), false)
+	err = suite.collection.Delete(test.SimpleItem2.Filter(), false)
 	suite.Require().Error(err)
-	err = suite.collection.Delete(testItem2.Filter(), true)
+	err = suite.collection.Delete(test.SimpleItem2.Filter(), true)
 	suite.Require().NoError(err)
 }
 
 func (suite *collectionTestSuite) TestCountDeleteAll() {
-	suite.Require().NoError(suite.collection.Create(testItem1))
-	suite.Require().NoError(suite.collection.Create(testItem2))
-	suite.Require().NoError(suite.collection.Create(testItem3))
+	suite.Require().NoError(suite.collection.Create(test.SimpleItem1))
+	suite.Require().NoError(suite.collection.Create(test.SimpleItem2))
+	suite.Require().NoError(suite.collection.Create(test.SimpleItem3))
 	count, err := suite.collection.Count(bson.D{})
 	suite.NoError(err)
 	suite.Equal(int64(3), count)
@@ -116,9 +118,9 @@ func (suite *collectionTestSuite) TestCountDeleteAll() {
 }
 
 func (suite *collectionTestSuite) TestIterate() {
-	suite.Require().NoError(suite.collection.Create(testItem1))
-	suite.Require().NoError(suite.collection.Create(testItem2))
-	suite.Require().NoError(suite.collection.Create(testItem3))
+	suite.Require().NoError(suite.collection.Create(test.SimpleItem1))
+	suite.Require().NoError(suite.collection.Create(test.SimpleItem2))
+	suite.Require().NoError(suite.collection.Create(test.SimpleItem3))
 	count := 0
 	alpha := []string{}
 	suite.NoError(suite.collection.Iterate(bson.D{}, func(item interface{}) error {
@@ -136,9 +138,9 @@ func (suite *collectionTestSuite) TestIterate() {
 }
 
 func (suite *collectionTestSuite) TestIterateFiltered() {
-	suite.Require().NoError(suite.collection.Create(testItem1))
-	suite.Require().NoError(suite.collection.Create(testItem2))
-	suite.Require().NoError(suite.collection.Create(testItem3))
+	suite.Require().NoError(suite.collection.Create(test.SimpleItem1))
+	suite.Require().NoError(suite.collection.Create(test.SimpleItem2))
+	suite.Require().NoError(suite.collection.Create(test.SimpleItem3))
 	count := 0
 	alpha := []string{}
 	suite.NoError(suite.collection.Iterate(bson.D{bson.E{Key: "alpha", Value: "one"}}, func(item interface{}) error {
@@ -160,8 +162,8 @@ func (suite *collectionTestSuite) TestStringValuesFor() {
 	suite.Require().NoError(err)
 	suite.NotNil(collection)
 	for i := 0; i < 5; i++ {
-		_, err := collection.InsertOne(collection.Context(), &testItem{
-			TestKey: TestKey{
+		_, err := collection.InsertOne(collection.Context(), &test.SimpleItem{
+			SimpleKey: test.SimpleKey{
 				Alpha: fmt.Sprintf("Alpha #%d", i),
 				Bravo: i,
 			},

@@ -23,7 +23,7 @@
 //
 // The AccessTestSuite struct is provided to wrap database connect/disconnect
 // for use in tests that actually hit the database.
-// The use of '+build database' separates these so that they are only run
+// The use of 'go:build database' separates these so that they are only run
 // when using 'go test -tags database', without this tag only unit tests are run.
 //
 // The IndexTester supports verifying that a specific index has been added to a collection.
