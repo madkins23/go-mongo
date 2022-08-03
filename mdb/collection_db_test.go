@@ -122,7 +122,7 @@ func (suite *collectionTestSuite) TestIterate() {
 	suite.Require().NoError(suite.collection.Create(test.SimpleItem2))
 	suite.Require().NoError(suite.collection.Create(test.SimpleItem3))
 	count := 0
-	alpha := []string{}
+	var alpha []string
 	suite.NoError(suite.collection.Iterate(bson.D{}, func(item interface{}) error {
 		if bd, ok := item.(bson.D); ok {
 			m := bd.Map()
@@ -142,7 +142,7 @@ func (suite *collectionTestSuite) TestIterateFiltered() {
 	suite.Require().NoError(suite.collection.Create(test.SimpleItem2))
 	suite.Require().NoError(suite.collection.Create(test.SimpleItem3))
 	count := 0
-	alpha := []string{}
+	var alpha []string
 	suite.NoError(suite.collection.Iterate(bson.D{bson.E{Key: "alpha", Value: "one"}}, func(item interface{}) error {
 		if bd, ok := item.(bson.D); ok {
 			m := bd.Map()

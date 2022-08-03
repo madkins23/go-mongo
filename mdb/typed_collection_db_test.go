@@ -17,7 +17,8 @@ import (
 
 type typedTestSuite struct {
 	AccessTestSuite
-	typed *TypedCollection[test.SimpleItem]
+	typed   *TypedCollection[test.SimpleItem]
+	wrapped *TypedCollection[WrappedItems]
 }
 
 func TestTypedSuite(t *testing.T) {
@@ -34,6 +35,9 @@ func (suite *typedTestSuite) SetupSuite() {
 	suite.NotNil(collection)
 	suite.Require().NoError(suite.access.Index(collection, NewIndexDescription(true, "alpha")))
 	suite.typed = NewTypedCollection[test.SimpleItem](collection)
+	suite.Require().NotNil(suite.typed)
+	suite.wrapped = NewTypedCollection[WrappedItems](collection)
+	suite.Require().NotNil(suite.wrapped)
 }
 
 func (suite *typedTestSuite) TearDownTest() {
@@ -113,11 +117,9 @@ func (suite *typedTestSuite) TestIterateFiltered() {
 func (suite *typedTestSuite) TestCreateFindDeleteWrapped() {
 	wrapped := MakeWrappedItems()
 	suite.Require().NoError(suite.typed.Create(wrapped))
-	found, err := suite.typed.Find(wrapped.Filter())
+	foundWrapped, err := suite.wrapped.Find(wrapped.Filter())
 	suite.Require().NoError(err)
-	suite.Require().NotNil(found)
-	foundWrapped, ok := found.(*WrappedItems)
-	suite.Require().True(ok)
+	suite.Require().NotNil(foundWrapped)
 	suite.Assert().Equal(wrapped, foundWrapped)
 	suite.Assert().Equal(test.ValueText, foundWrapped.Single.Get().String())
 	for _, item := range foundWrapped.Array {
@@ -125,14 +127,18 @@ func (suite *typedTestSuite) TestCreateFindDeleteWrapped() {
 		case "text":
 			suite.Assert().Equal(test.ValueText, item.Get().String())
 		case "numeric":
-			suite.Assert().Equal(test.ValueNumber, item.Get().String())
+			if numVal, ok := item.Get().(*test.NumericValue); ok {
+				suite.Assert().Equal(test.ValueNumber, numVal.Number)
+			} else {
+				suite.Assert().Fail("Not NumericValue: " + item.Get().String())
+			}
 		case "random":
 			random := item.Get().String()
 			fmt.Printf("Random:  %s\n", random)
 			suite.Assert().True(len(random) >= test.RandomMinimum)
 			suite.Assert().True(len(random) <= test.RandomMaximum)
 		default:
-			suite.Assert().Failf("Unknown item key: %s", item.Get().Key())
+			suite.Assert().Fail("Unknown item key: '" + item.Get().Key() + "'")
 		}
 	}
 	for key, item := range foundWrapped.Map {

@@ -27,8 +27,9 @@ func (suite *BsonTestSuite) SetupSuite() {
 		suite.Require().NoError(err)
 	}
 	reg.Highlander().Clear()
-	suite.Require().NoError(reg.AddAlias("mdbson", Bond{}), "creating bson test alias")
 	suite.Require().NoError(test.Register())
+	suite.Require().NoError(test.RegisterPortfolio())
+	suite.Require().NoError(reg.AddAlias("mdbson", Bond{}), "creating bson test alias")
 	suite.Require().NoError(reg.Register(Bond{}))
 	suite.Require().NoError(reg.Register(WrappedBond{}))
 }

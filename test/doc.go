@@ -8,3 +8,18 @@
 // Build the code from that link and run it against an application that uses
 // a package (other than this one) from this project to test it yourself.
 package test
+
+import (
+	"fmt"
+
+	"github.com/madkins23/go-type/reg"
+)
+
+// Register adds the 'test' alias.
+// Uses the github.com/madkins23/go-type library to register structs by name.
+func Register() error {
+	if err := reg.AddAlias("test", &Stock{}); err != nil {
+		return fmt.Errorf("adding 'test' alias: %w", err)
+	}
+	return nil
+}
