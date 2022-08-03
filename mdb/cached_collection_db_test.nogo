@@ -14,7 +14,7 @@ import (
 
 type cacheTestSuite struct {
 	AccessTestSuite
-	cache *CachedCollection
+	cache *CachedCollection[*test.SimpleItem]
 }
 
 func TestCacheSuite(t *testing.T) {
@@ -27,7 +27,7 @@ func (suite *cacheTestSuite) SetupSuite() {
 	suite.Require().NoError(err)
 	suite.NotNil(collection)
 	suite.Require().NoError(suite.access.Index(collection, NewIndexDescription(true, "alpha")))
-	suite.cache = NewCachedCollection(collection, &test.SimpleItem{}, time.Hour)
+	suite.cache = NewCachedCollection[*test.SimpleItem](collection, time.Hour)
 }
 
 func (suite *cacheTestSuite) TearDownTest() {

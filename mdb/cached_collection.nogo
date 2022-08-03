@@ -1,27 +1,27 @@
 package mdb
 
 import (
-	"errors"
 	"fmt"
-	"reflect"
 	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+
+	"github.com/madkins23/go-mongo/test"
 )
 
 // CachedCollection caches Mongo-stored objects so that the same object is always returned.
 // This is most useful for objects that change rarely.
-type CachedCollection struct {
-	*TypedCollection
-	cache       map[string]Cacheable
+type CachedCollection[C Cacheable] struct {
+	*TypedCollection[C]
+	cache       map[string]C
 	expireAfter time.Duration
 }
 
-func NewCachedCollection(collection *Collection, example interface{}, expireAfter time.Duration) *CachedCollection {
-	return &CachedCollection{
-		TypedCollection: NewTypedCollection(collection, example),
-		cache:           make(map[string]Cacheable),
+func NewCachedCollection[C Cacheable](collection *Collection, expireAfter time.Duration) *CachedCollection[C] {
+	return &CachedCollection[C]{
+		TypedCollection: NewTypedCollection[C](collection),
+		cache:           make(map[string]C),
 		expireAfter:     expireAfter,
 	}
 }
@@ -36,7 +36,6 @@ type Cacheable interface {
 type Loadable interface {
 	ExpireAfter(duration time.Duration)
 	Expired() bool
-	Realizable
 }
 
 // Searchable may be used just for searching for a cached item.
@@ -46,48 +45,64 @@ type Searchable interface {
 	Filter() bson.D
 }
 
+type CacheableItem struct {
+	test.SimpleItem
+	expire time.Time
+}
+
+func (ci *CacheableItem) ExpireAfter(duration time.Duration) {
+	ci.expire = time.Now().Add(duration)
+}
+
+func (ci *CacheableItem) Expired() bool {
+	return time.Now().After(ci.expire)
+}
+
 // Delete object in cache and DB.
-func (c *CachedCollection) Delete(item Searchable, idempotent bool) error {
+func (c *CachedCollection[Cacheable]) Delete(item Searchable, idempotent bool) error {
 	delete(c.cache, item.CacheKey())
 	return c.Collection.Delete(item.Filter(), idempotent)
 }
 
-var errItemNotCacheable = errors.New("item not cacheable")
-
 // Find a cacheable object in either cache or database.
-func (c *CachedCollection) Find(searchFor Searchable) (Cacheable, error) {
-	var found, ok bool
-	var item Cacheable
-
+func (c *CachedCollection[C]) Find(searchFor Searchable) (*C, error) {
+	var item C
+	var found bool
 	cacheKey := searchFor.CacheKey()
-	if item, found = c.cache[searchFor.CacheKey()]; found {
-		if item == nil || item.Expired() {
+	if item, found = c.cache[cacheKey]; found {
+		remove := false
+		if item == nil {
+			remove = true
+		} else {
+			if item.Expired() {
+				delete(c.cache, cacheKey)
+				found = false
+			}
+		}
+		if remove {
 			delete(c.cache, cacheKey)
 			found = false
 		}
 	}
 
 	if !found {
-		itemIF, err := c.TypedCollection.Find(searchFor.Filter())
+		foundItem, err := c.TypedCollection.Find(searchFor.Filter())
 		if err != nil {
 			if c.IsNotFound(err) {
-				return nil, fmt.Errorf("no item '%s': %w", cacheKey, err)
+				return foundItem, fmt.Errorf("no item '%s': %w", cacheKey, err)
 			}
-			return nil, fmt.Errorf("find item '%s': %w", cacheKey, err)
-		}
-		if item, ok = itemIF.(Cacheable); !ok {
-			return nil, errItemNotCacheable
+			return foundItem, fmt.Errorf("find item '%s': %w", cacheKey, err)
 		}
 
-		item.ExpireAfter(c.expireAfter)
-		c.cache[cacheKey] = item
+		foundItem.ExpireAfter(c.expireAfter)
+		c.cache[cacheKey] = foundItem
 	}
 
 	return item, nil
 }
 
 // FindOrCreate returns an existing cacheable object or creates it if it does not already exist.
-func (c *CachedCollection) FindOrCreate(cacheItem Cacheable) (Cacheable, error) {
+func (c *CachedCollection[T]) FindOrCreate(cacheItem Cacheable) (Cacheable, error) {
 	item, err := c.Find(cacheItem)
 	if err != nil {
 		if !c.IsNotFound(err) {
@@ -108,14 +123,8 @@ func (c *CachedCollection) FindOrCreate(cacheItem Cacheable) (Cacheable, error) 
 	return item, nil
 }
 
-// Instantiate the Cacheable item specified by the item type.
-func (c *CachedCollection) Instantiate() Cacheable {
-	// TODO: can we assume that the item type will return a Cacheable?
-	return reflect.New(c.itemType).Interface().(Cacheable)
-}
-
 // InvalidateByPrefix removes items from the cache if the item key has the specified prefix.
-func (c *CachedCollection) InvalidateByPrefix(prefix string) {
+func (c *CachedCollection[T]) InvalidateByPrefix(prefix string) {
 	for k := range c.cache {
 		if strings.HasPrefix(k, prefix) {
 			delete(c.cache, k)
