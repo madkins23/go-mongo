@@ -11,6 +11,8 @@ import (
 
 // CachedCollection caches Mongo-stored objects so that the same object is always returned.
 // This is most useful for objects that change rarely.
+//
+// TODO: Should this be made thread-safe?
 type CachedCollection[C Cacheable] struct {
 	Collection
 	cache       map[string]C

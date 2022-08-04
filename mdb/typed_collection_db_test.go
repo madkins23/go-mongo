@@ -57,13 +57,6 @@ func (suite *typedTestSuite) TestCreateDuplicate() {
 	suite.Require().True(suite.access.IsDuplicate(err))
 }
 
-func (suite *typedTestSuite) TestFindNone() {
-	item, err := suite.typed.Find(test.SimpleKeyOfTheBeast.Filter())
-	suite.Require().Error(err)
-	suite.True(suite.typed.IsNotFound(err))
-	suite.Nil(item)
-}
-
 func (suite *typedTestSuite) TestCreateFindDelete() {
 	err := suite.typed.Create(test.SimpleItem2)
 	suite.Require().NoError(err)
@@ -82,6 +75,13 @@ func (suite *typedTestSuite) TestCreateFindDelete() {
 	suite.Require().Error(err)
 	err = suite.typed.Delete(test.SimpleItem2.Filter(), true)
 	suite.Require().NoError(err)
+}
+
+func (suite *typedTestSuite) TestFindNone() {
+	item, err := suite.typed.Find(test.SimpleKeyOfTheBeast.Filter())
+	suite.Require().Error(err)
+	suite.True(suite.typed.IsNotFound(err))
+	suite.Nil(item)
 }
 
 func (suite *typedTestSuite) TestIterate() {
@@ -122,29 +122,29 @@ func (suite *typedTestSuite) TestCreateFindDeleteWrapped() {
 	foundWrapped, err := suite.wrapped.Find(wrapped.Filter())
 	suite.Require().NoError(err)
 	suite.Require().NotNil(foundWrapped)
-	suite.Assert().Equal(wrapped, foundWrapped)
-	suite.Assert().Equal(test.ValueText, foundWrapped.Single.Get().String())
+	suite.Equal(wrapped, foundWrapped)
+	suite.Equal(test.ValueText, foundWrapped.Single.Get().String())
 	for _, item := range foundWrapped.Array {
 		switch item.Get().Key() {
 		case "text":
-			suite.Assert().Equal(test.ValueText, item.Get().String())
+			suite.Equal(test.ValueText, item.Get().String())
 		case "numeric":
 			if numVal, ok := item.Get().(*test.NumericValue); ok {
-				suite.Assert().Equal(test.ValueNumber, numVal.Number)
+				suite.Equal(test.ValueNumber, numVal.Number)
 			} else {
-				suite.Assert().Fail("Not NumericValue: " + item.Get().String())
+				suite.Fail("Not NumericValue: " + item.Get().String())
 			}
 		case "random":
 			random := item.Get().String()
 			fmt.Printf("Random:  %s\n", random)
-			suite.Assert().True(len(random) >= test.RandomMinimum)
-			suite.Assert().True(len(random) <= test.RandomMaximum)
+			suite.True(len(random) >= test.RandomMinimum)
+			suite.True(len(random) <= test.RandomMaximum)
 		default:
-			suite.Assert().Fail("Unknown item key: '" + item.Get().Key() + "'")
+			suite.Fail("Unknown item key: '" + item.Get().Key() + "'")
 		}
 	}
 	for key, item := range foundWrapped.Map {
-		suite.Assert().Equal(key, item.Get().Key())
+		suite.Equal(key, item.Get().Key())
 	}
 	cacheKey := wrapped.CacheKey()
 	suite.NotEmpty(cacheKey)

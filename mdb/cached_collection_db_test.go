@@ -35,11 +35,15 @@ func (suite *cacheTestSuite) TearDownTest() {
 	suite.NoError(suite.cached.DeleteAll())
 }
 
-func (suite *cacheTestSuite) TestFindNone() {
-	item, err := suite.cached.Find(test.SimpleKeyOfTheBeast)
+func (suite *cacheTestSuite) TestCreateDuplicate() {
+	err := suite.cached.Create(test.SimpleItem1)
+	suite.Require().NoError(err)
+	item, err := suite.cached.Find(test.SimpleItem1)
+	suite.Require().NoError(err)
+	suite.NotNil(item)
+	err = suite.cached.Create(test.SimpleItem1)
 	suite.Require().Error(err)
-	suite.True(suite.cached.IsNotFound(err))
-	suite.Nil(item)
+	suite.Require().True(suite.access.IsDuplicate(err))
 }
 
 func (suite *cacheTestSuite) TestCreateFindDelete() {
@@ -66,27 +70,60 @@ func (suite *cacheTestSuite) TestCreateFindDelete() {
 	suite.Require().NoError(err)
 }
 
-//func (suite *cacheTestSuite) TestFindOrCreate() {
-//	item, err := suite.cache.Find(test.SimpleItem2)
-//	suite.Require().Error(err)
-//	suite.True(suite.cache.IsNotFound(err))
-//	suite.Nil(item)
-//	item, err = suite.cache.FindOrCreate(test.SimpleItem2)
-//	suite.Require().NoError(err)
-//	suite.NotNil(item)
-//	ti, ok := item.(*test.SimpleItem)
-//	suite.Require().True(ok)
-//	suite.True(ti.Realized)
-//	item, err = suite.cache.Find(test.SimpleItem2)
-//	suite.Require().NoError(err)
-//	suite.NotNil(item)
-//	ti, ok = item.(*test.SimpleItem)
-//	suite.Require().True(ok)
-//	suite.True(ti.Realized)
-//	item2, err := suite.cache.FindOrCreate(test.SimpleItem2)
-//	suite.Require().NoError(err)
-//	suite.NotNil(item2)
-//	suite.Equal(item, item2)
+func (suite *cacheTestSuite) TestFindOrCreate() {
+	item, err := suite.cached.Find(test.SimpleItem2)
+	suite.Require().Error(err)
+	suite.True(suite.cached.IsNotFound(err))
+	suite.Nil(item)
+	item, err = suite.cached.FindOrCreate(test.SimpleItem2)
+	suite.Require().NoError(err)
+	suite.NotNil(item)
+	item, err = suite.cached.Find(test.SimpleItem2)
+	suite.Require().NoError(err)
+	suite.NotNil(item)
+	item2, err := suite.cached.FindOrCreate(test.SimpleItem2)
+	suite.Require().NoError(err)
+	suite.NotNil(item2)
+	suite.Equal(item, item2)
+}
+
+func (suite *cacheTestSuite) TestFindNone() {
+	item, err := suite.cached.Find(test.SimpleKeyOfTheBeast)
+	suite.Require().Error(err)
+	suite.True(suite.cached.IsNotFound(err))
+	suite.Nil(item)
+}
+
+//func (suite *cacheTestSuite) TestIterate() {
+//	suite.Require().NoError(suite.cached.Create(test.SimpleItem1))
+//	suite.Require().NoError(suite.cached.Create(test.SimpleItem2))
+//	suite.Require().NoError(suite.cached.Create(test.SimpleItem3))
+//	count := 0
+//	var alpha []string
+//	suite.NoError(suite.cached.Iterate(bson.D{},
+//		func(item *test.SimpleItem) error {
+//			alpha = append(alpha, item.Alpha)
+//			count++
+//			return nil
+//		}))
+//	suite.Equal(3, count)
+//	suite.Equal([]string{"one", "two", "three"}, alpha)
+//}
+//
+//func (suite *cacheTestSuite) TestIterateFiltered() {
+//	suite.Require().NoError(suite.cached.Create(test.SimpleItem1))
+//	suite.Require().NoError(suite.cached.Create(test.SimpleItem2))
+//	suite.Require().NoError(suite.cached.Create(test.SimpleItem3))
+//	count := 0
+//	var alpha []string
+//	suite.NoError(suite.cached.Iterate(bson.D{bson.E{Key: "bravo", Value: 2}},
+//		func(item *test.SimpleItem) error {
+//			alpha = append(alpha, item.Alpha)
+//			count++
+//			return nil
+//		}))
+//	suite.Equal(1, count)
+//	suite.Equal([]string{"two"}, alpha)
 //}
 
 ////////////////////////////////////////////////////////////////////////////////
