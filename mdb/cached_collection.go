@@ -5,35 +5,34 @@ import (
 	"strings"
 	"time"
 
+	"github.com/madkins23/go-utils/check"
 	"go.mongodb.org/mongo-driver/bson"
-
-	"github.com/madkins23/go-mongo/test"
 )
 
 // CachedCollection caches Mongo-stored objects so that the same object is always returned.
 // This is most useful for objects that change rarely.
 type CachedCollection[C Cacheable] struct {
-	*TypedCollection[C]
+	Collection
 	cache       map[string]C
 	expireAfter time.Duration
 }
 
 func NewCachedCollection[C Cacheable](collection *Collection, expireAfter time.Duration) *CachedCollection[C] {
 	return &CachedCollection[C]{
-		TypedCollection: NewTypedCollection[C](collection),
-		cache:           make(map[string]C),
-		expireAfter:     expireAfter,
+		Collection:  *collection,
+		cache:       make(map[string]C),
+		expireAfter: expireAfter,
 	}
 }
 
 // Cacheable must be searchable and loadable.
 type Cacheable interface {
 	Searchable
-	Loadable
+	Expirable
 }
 
-// Loadable may be loaded and then realized from stored fields.
-type Loadable interface {
+// Expirable defines behavior
+type Expirable interface {
 	ExpireAfter(duration time.Duration)
 	Expired() bool
 }
@@ -45,17 +44,14 @@ type Searchable interface {
 	Filter() bson.D
 }
 
-type CacheableItem struct {
-	test.SimpleItem
-	expire time.Time
-}
-
-func (ci *CacheableItem) ExpireAfter(duration time.Duration) {
-	ci.expire = time.Now().Add(duration)
-}
-
-func (ci *CacheableItem) Expired() bool {
-	return time.Now().After(ci.expire)
+// Create item in DB and cache.
+func (c *CachedCollection[Cacheable]) Create(item Cacheable) error {
+	if _, err := c.InsertOne(c.ctx, item); err != nil {
+		return fmt.Errorf("insert item: %w", err)
+	}
+	item.ExpireAfter(c.expireAfter)
+	c.cache[item.CacheKey()] = item
+	return nil
 }
 
 // Delete object in cache and DB.
@@ -64,14 +60,21 @@ func (c *CachedCollection[Cacheable]) Delete(item Searchable, idempotent bool) e
 	return c.Collection.Delete(item.Filter(), idempotent)
 }
 
+// DeleteAll all objects in cache and DB.
+func (c *CachedCollection[Cacheable]) DeleteAll() error {
+	// TODO: Why does this compile when c.cache is defined as map[string]C in the struct?
+	c.cache = make(map[string]Cacheable)
+	return c.Collection.DeleteAll()
+}
+
 // Find a cacheable object in either cache or database.
-func (c *CachedCollection[C]) Find(searchFor Searchable) (*C, error) {
+func (c *CachedCollection[C]) Find(searchFor Searchable) (C, error) {
 	var item C
 	var found bool
 	cacheKey := searchFor.CacheKey()
 	if item, found = c.cache[cacheKey]; found {
 		remove := false
-		if item == nil {
+		if check.IsZero[C](item) {
 			remove = true
 		} else {
 			if item.Expired() {
@@ -86,37 +89,37 @@ func (c *CachedCollection[C]) Find(searchFor Searchable) (*C, error) {
 	}
 
 	if !found {
-		foundItem, err := c.TypedCollection.Find(searchFor.Filter())
+		newItem := new(C)
+		err := c.FindOne(c.ctx, searchFor).Decode(newItem)
 		if err != nil {
 			if c.IsNotFound(err) {
-				return foundItem, fmt.Errorf("no item '%s': %w", cacheKey, err)
+				return item, fmt.Errorf("no item '%v': %w", searchFor, err)
 			}
-			return foundItem, fmt.Errorf("find item '%s': %w", cacheKey, err)
+			return item, fmt.Errorf("find item '%v': %w", searchFor, err)
 		}
 
-		foundItem.ExpireAfter(c.expireAfter)
-		c.cache[cacheKey] = foundItem
+		return *newItem, nil
 	}
 
 	return item, nil
 }
 
 // FindOrCreate returns an existing cacheable object or creates it if it does not already exist.
-func (c *CachedCollection[T]) FindOrCreate(cacheItem Cacheable) (Cacheable, error) {
+func (c *CachedCollection[Cacheable]) FindOrCreate(cacheItem Cacheable) (Cacheable, error) {
 	item, err := c.Find(cacheItem)
 	if err != nil {
 		if !c.IsNotFound(err) {
-			return nil, err
+			return item, err
 		}
 
 		err = c.Create(cacheItem)
 		if err != nil {
-			return nil, err
+			return item, err
 		}
 
 		item, err = c.Find(cacheItem)
 		if err != nil {
-			return nil, fmt.Errorf("find just created item: %w", err)
+			return item, fmt.Errorf("find just created item: %w", err)
 		}
 	}
 

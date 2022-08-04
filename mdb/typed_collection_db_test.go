@@ -35,9 +35,11 @@ func (suite *typedTestSuite) SetupSuite() {
 	suite.NotNil(collection)
 	suite.Require().NoError(suite.access.Index(collection, NewIndexDescription(true, "alpha")))
 	suite.typed = NewTypedCollection[test.SimpleItem](collection)
+	suite.Require().NoError(suite.typed.DeleteAll())
 	suite.Require().NotNil(suite.typed)
 	suite.wrapped = NewTypedCollection[WrappedItems](collection)
 	suite.Require().NotNil(suite.wrapped)
+	suite.Require().NoError(suite.wrapped.DeleteAll())
 }
 
 func (suite *typedTestSuite) TearDownTest() {

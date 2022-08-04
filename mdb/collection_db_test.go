@@ -30,6 +30,7 @@ func (suite *collectionTestSuite) SetupSuite() {
 	suite.collection, err = suite.access.Collection(context.TODO(), "test-collection", test.SimpleValidatorJSON)
 	suite.Require().NoError(err)
 	suite.NotNil(suite.collection)
+	suite.Require().NoError(suite.collection.DeleteAll())
 	suite.Require().NoError(suite.access.Index(suite.collection, NewIndexDescription(true, "alpha")))
 }
 
