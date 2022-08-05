@@ -97,7 +97,7 @@ func (c *CachedCollection[C]) Find(searchFor Searchable) (C, error) {
 		newItem := new(C)
 		err := c.FindOne(c.ctx, searchFor).Decode(newItem)
 		if err != nil {
-			if c.IsNotFound(err) {
+			if IsNotFound(err) {
 				return item, fmt.Errorf("no item '%v': %w", searchFor, err)
 			}
 			return item, fmt.Errorf("find item '%v': %w", searchFor, err)
@@ -114,7 +114,7 @@ func (c *CachedCollection[Cacheable]) FindOrCreate(cacheItem Cacheable) (Cacheab
 	// Can't inherit from TypedCollection here, must redo the algorithm due to caching.
 	item, err := c.Find(cacheItem)
 	if err != nil {
-		if !c.IsNotFound(err) {
+		if !IsNotFound(err) {
 			return item, err
 		}
 

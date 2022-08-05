@@ -164,51 +164,6 @@ func (a *Access) Database() *mongo.Database {
 	return a.database
 }
 
-// IsDuplicate checks to see if the specified error is for a duplicate something.
-func (a *Access) IsDuplicate(err error) bool {
-	if err == nil {
-		return false
-	}
-
-	var e mongo.WriteException
-	if errors.As(err, &e) {
-		for _, we := range e.WriteErrors {
-			if we.Code == 11000 {
-				return true
-			}
-		}
-	}
-
-	return false
-}
-
-// IsNotFound checks an error condition to see if it matches the underlying database "not found" error.
-func (a *Access) IsNotFound(err error) bool {
-	if err == nil {
-		return false
-	}
-
-	return errors.Is(err, mongo.ErrNoDocuments)
-}
-
-// IsValidationFailure checks to see if the specified error is for a validation failure.
-func (a *Access) IsValidationFailure(err error) bool {
-	if err == nil {
-		return false
-	}
-
-	var e mongo.WriteException
-	if errors.As(err, &e) {
-		for _, we := range e.WriteErrors {
-			if we.Code == 121 {
-				return true
-			}
-		}
-	}
-
-	return false
-}
-
 // Ping executes a ping against the Mongo server.
 // This is separated from Connect() so that it can be overridden if necessary.
 func (a *Access) Ping() error {
@@ -225,7 +180,6 @@ func (a *Access) Ping() error {
 // Info prints a simple message in the format MDB: <msg>.
 // This is used for a few calls within the Access code.
 // It may be overridden to use another logger or to block these messages.
-// TODO(mAdkins): How to override this since Access is returned from Connect()?
 func (a *Access) Info(msg string) {
 	a.config.LogInfoFn(msg)
 }
@@ -271,4 +225,51 @@ func fixConfig(config *Config) *Config {
 	}
 
 	return config
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+// IsDuplicate checks to see if the specified error is for a duplicate something.
+func IsDuplicate(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	var e mongo.WriteException
+	if errors.As(err, &e) {
+		for _, we := range e.WriteErrors {
+			if we.Code == 11000 {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// IsNotFound checks an error condition to see if it matches the underlying database "not found" error.
+func IsNotFound(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	return errors.Is(err, mongo.ErrNoDocuments)
+}
+
+// IsValidationFailure checks to see if the specified error is for a validation failure.
+func IsValidationFailure(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	var e mongo.WriteException
+	if errors.As(err, &e) {
+		for _, we := range e.WriteErrors {
+			if we.Code == 121 {
+				return true
+			}
+		}
+	}
+
+	return false
 }

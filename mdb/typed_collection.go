@@ -24,7 +24,7 @@ func (c *TypedCollection[T]) Find(filter bson.D) (*T, error) {
 	item := new(T)
 	err := c.FindOne(c.ctx, filter).Decode(item)
 	if err != nil {
-		if c.IsNotFound(err) {
+		if IsNotFound(err) {
 			return nil, fmt.Errorf("no item '%v': %w", filter, err)
 		}
 		return nil, fmt.Errorf("find item '%v': %w", filter, err)
@@ -38,7 +38,7 @@ func (c *TypedCollection[T]) FindOrCreate(filter bson.D, item *T) (*T, error) {
 	// Can't inherit from TypedCollection here, must redo the algorithm due to typing.
 	found, err := c.Find(filter)
 	if err != nil {
-		if !c.IsNotFound(err) {
+		if !IsNotFound(err) {
 			return found, err
 		}
 

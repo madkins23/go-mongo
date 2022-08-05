@@ -147,7 +147,7 @@ func (c *Collection) DeleteAll() error {
 func (c *Collection) Find(filter bson.D) (interface{}, error) {
 	var item interface{}
 	if err := c.FindOne(c.ctx, filter).Decode(&item); err != nil {
-		if c.IsNotFound(err) {
+		if IsNotFound(err) {
 			return nil, fmt.Errorf("no item '%v': %w", filter, err)
 		}
 		return nil, fmt.Errorf("find item '%v': %w", filter, err)
@@ -161,7 +161,7 @@ func (c *Collection) Find(filter bson.D) (interface{}, error) {
 func (c *Collection) FindOrCreate(filter bson.D, item interface{}) (interface{}, error) {
 	found, err := c.Find(filter)
 	if err != nil {
-		if !c.IsNotFound(err) {
+		if !IsNotFound(err) {
 			return found, err
 		}
 

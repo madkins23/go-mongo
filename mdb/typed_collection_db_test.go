@@ -49,20 +49,20 @@ func (suite *typedTestSuite) TestCreateDuplicate() {
 	suite.NotNil(item)
 	err = suite.typed.Create(test.SimpleItem1)
 	suite.Require().Error(err)
-	suite.Require().True(suite.access.IsDuplicate(err))
+	suite.Require().True(IsDuplicate(err))
 }
 
 func (suite *typedTestSuite) TestFindNone() {
 	item, err := suite.typed.Find(test.SimpleKeyOfTheBeast.Filter())
 	suite.Require().Error(err)
-	suite.True(suite.typed.IsNotFound(err))
+	suite.True(IsNotFound(err))
 	suite.Nil(item)
 }
 
 func (suite *typedTestSuite) TestFindOrCreate() {
 	item, err := suite.typed.Find(test.SimpleItem2.Filter())
 	suite.Require().Error(err)
-	suite.True(suite.typed.IsNotFound(err))
+	suite.True(IsNotFound(err))
 	suite.Nil(item)
 	item, err = suite.typed.FindOrCreate(test.SimpleItem2.Filter(), test.SimpleItem2)
 	suite.Require().NoError(err)
@@ -88,7 +88,7 @@ func (suite *typedTestSuite) TestCreateFindDelete() {
 	suite.Require().NoError(err)
 	noItem, err := suite.typed.Find(test.SimpleItem2.Filter())
 	suite.Require().Error(err)
-	suite.True(suite.typed.IsNotFound(err))
+	suite.True(IsNotFound(err))
 	suite.Nil(noItem)
 	err = suite.typed.Delete(test.SimpleItem2.Filter(), false)
 	suite.Require().Error(err)
@@ -209,7 +209,7 @@ func (suite *typedTestSuite) TestCreateFindDeleteWrapped() {
 	suite.Require().NoError(err)
 	noItem, err := wrapped.Find(wrappedItems.Filter())
 	suite.Require().Error(err)
-	suite.True(wrapped.IsNotFound(err))
+	suite.True(IsNotFound(err))
 	suite.Nil(noItem)
 	err = wrapped.Delete(wrappedItems.Filter(), false)
 	suite.Require().Error(err)

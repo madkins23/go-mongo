@@ -49,20 +49,20 @@ func (suite *cacheTestSuite) TestCreateDuplicate() {
 	suite.NotNil(item)
 	err = suite.cached.Create(test.SimpleItem1)
 	suite.Require().Error(err)
-	suite.Require().True(suite.access.IsDuplicate(err))
+	suite.Require().True(IsDuplicate(err))
 }
 
 func (suite *cacheTestSuite) TestFindNone() {
 	item, err := suite.cached.Find(test.SimpleKeyOfTheBeast)
 	suite.Require().Error(err)
-	suite.True(suite.cached.IsNotFound(err))
+	suite.True(IsNotFound(err))
 	suite.Nil(item)
 }
 
 func (suite *cacheTestSuite) TestFindOrCreate() {
 	item, err := suite.cached.Find(test.SimpleItem2)
 	suite.Require().Error(err)
-	suite.True(suite.cached.IsNotFound(err))
+	suite.True(IsNotFound(err))
 	suite.Nil(item)
 	item, err = suite.cached.FindOrCreate(test.SimpleItem2)
 	suite.Require().NoError(err)
@@ -92,7 +92,7 @@ func (suite *cacheTestSuite) TestCreateFindDelete() {
 	suite.False(ok)
 	noItem, err := suite.cached.Find(test.SimpleItem1)
 	suite.Require().Error(err)
-	suite.True(suite.cached.IsNotFound(err))
+	suite.True(IsNotFound(err))
 	suite.Nil(noItem)
 	err = suite.cached.Delete(test.SimpleItem1, false)
 	suite.Require().Error(err)
@@ -213,7 +213,7 @@ func (suite *cacheTestSuite) TestCreateFindDeleteWrapped() {
 	suite.Require().NoError(err)
 	noItem, err := wrapped.Find(wrappedItems)
 	suite.Require().Error(err)
-	suite.True(wrapped.IsNotFound(err))
+	suite.True(IsNotFound(err))
 	suite.Nil(noItem)
 	err = wrapped.Delete(wrappedItems, false)
 	suite.Require().Error(err)

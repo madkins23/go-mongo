@@ -76,20 +76,20 @@ func (suite *collectionTestSuite) TestCreateDuplicate() {
 	suite.NotNil(item)
 	err = suite.collection.Create(test.SimpleItem1)
 	suite.Require().Error(err)
-	suite.Require().True(suite.access.IsDuplicate(err))
+	suite.Require().True(IsDuplicate(err))
 }
 
 func (suite *collectionTestSuite) TestFindNone() {
 	item, err := suite.collection.Find(test.SimpleKeyOfTheBeast.Filter())
 	suite.Require().Error(err)
-	suite.True(suite.collection.IsNotFound(err))
+	suite.True(IsNotFound(err))
 	suite.Nil(item)
 }
 
 func (suite *collectionTestSuite) TestFindOrCreate() {
 	item, err := suite.collection.Find(test.SimpleItem2.Filter())
 	suite.Require().Error(err)
-	suite.True(suite.collection.IsNotFound(err))
+	suite.True(IsNotFound(err))
 	suite.Nil(item)
 	item, err = suite.collection.FindOrCreate(test.SimpleItem2.Filter(), test.SimpleItem2)
 	suite.Require().NoError(err)
@@ -114,7 +114,7 @@ func (suite *collectionTestSuite) TestCreateFindDelete() {
 	suite.Require().NoError(err)
 	noItem, err := suite.collection.Find(test.SimpleItem2.Filter())
 	suite.Require().Error(err)
-	suite.True(suite.collection.IsNotFound(err))
+	suite.True(IsNotFound(err))
 	suite.Nil(noItem)
 	err = suite.collection.Delete(test.SimpleItem2.Filter(), false)
 	suite.Require().Error(err)
