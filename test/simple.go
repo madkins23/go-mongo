@@ -1,4 +1,4 @@
-package mdb
+package test
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-var testValidatorJSON = `{
+var SimpleValidatorJSON = `{
 	"$jsonSchema": {
 		"bsonType": "object",
 		"required": ["alpha", "bravo", "charlie"],
@@ -27,45 +27,45 @@ var testValidatorJSON = `{
 
 ////////////////////////////////////////////////////////////////////////////////
 
-type TestKey struct {
+type SimpleKey struct {
 	Alpha string
 	Bravo int
 }
 
-func (tk *TestKey) CacheKey() string {
+func (tk *SimpleKey) CacheKey() string {
 	return fmt.Sprintf("%s-%d", tk.Alpha, tk.Bravo)
 }
 
-func (tk *TestKey) Filter() bson.D {
+func (tk *SimpleKey) Filter() bson.D {
 	return bson.D{
 		{"alpha", tk.Alpha},
 		{"bravo", tk.Bravo},
 	}
 }
 
-type testItem struct {
-	TestKey  `bson:"inline"`
-	Charlie  string
-	Realized bool
-	expires  time.Time
+type SimpleItem struct {
+	SimpleKey `bson:"inline"`
+	Charlie   string
+	Realized  bool
+	expires   time.Time
 }
 
-func (ti *testItem) ExpireAfter(duration time.Duration) {
+func (ti *SimpleItem) ExpireAfter(duration time.Duration) {
 	ti.expires = time.Now().Add(duration)
 }
 
-func (ti *testItem) Expired() bool {
+func (ti *SimpleItem) Expired() bool {
 	return time.Now().After(ti.expires)
 }
 
-func (ti *testItem) Filter() bson.D {
+func (ti *SimpleItem) Filter() bson.D {
 	return bson.D{
 		{"alpha", ti.Alpha},
 		{"bravo", ti.Bravo},
 	}
 }
 
-func (ti *testItem) Realize() error {
+func (ti *SimpleItem) Realize() error {
 	ti.Realized = true
 	return nil
 }
@@ -73,28 +73,28 @@ func (ti *testItem) Realize() error {
 ////////////////////////////////////////////////////////////////////////////////
 
 var (
-	testItem1 = &testItem{
-		TestKey: TestKey{
+	SimpleItem1 = &SimpleItem{
+		SimpleKey: SimpleKey{
 			Alpha: "one",
 			Bravo: 1,
 		},
 		Charlie: "One is the loneliest number",
 	}
-	testItem2 = &testItem{
-		TestKey: TestKey{
+	SimpleItem2 = &SimpleItem{
+		SimpleKey: SimpleKey{
 			Alpha: "two",
 			Bravo: 2,
 		},
 		Charlie: "It takes two to tango",
 	}
-	testItem3 = &testItem{
-		TestKey: TestKey{
+	SimpleItem3 = &SimpleItem{
+		SimpleKey: SimpleKey{
 			Alpha: "three",
 			Bravo: 3,
 		},
 		Charlie: "Three can keep a secret if two of them are dead",
 	}
-	testKeyOfTheBeast = &TestKey{
+	SimpleKeyOfTheBeast = &SimpleKey{
 		Alpha: "beast",
 		Bravo: 666,
 	}

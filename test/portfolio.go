@@ -11,12 +11,9 @@ var _ Investment = &Stock{}
 var _ Borrower = &Federal{}
 var _ Borrower = &State{}
 
-// Register adds the 'test' alias and registers several structs.
+// RegisterPortfolio registers structs that will be wrapped during testing.
 // Uses the github.com/madkins23/go-type library to register structs by name.
-func Register() error {
-	if err := reg.AddAlias("test", &Stock{}); err != nil {
-		return fmt.Errorf("adding 'test' alias: %w", err)
-	}
+func RegisterPortfolio() error {
 	if err := reg.Register(&Stock{}); err != nil {
 		return fmt.Errorf("registering Stock struct: %w", err)
 	}

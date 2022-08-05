@@ -46,8 +46,8 @@ func (a *Access) Index(collection *Collection, description *IndexDescription) er
 		},
 	})
 	if err != nil {
-		// TODO: at this point should the collection be removed?
-		// Experimentation suggests that double creation of the index is OK.
+		// TODO(mAdkins): at this point should the collection be removed?
+		//  Experimentation suggests that double creation of the index is OK.
 		return fmt.Errorf("create index on name: %w", err)
 	}
 

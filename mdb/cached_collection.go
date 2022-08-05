@@ -1,42 +1,44 @@
 package mdb
 
 import (
-	"errors"
 	"fmt"
-	"reflect"
 	"strings"
 	"time"
 
+	"github.com/madkins23/go-utils/check"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
 // CachedCollection caches Mongo-stored objects so that the same object is always returned.
 // This is most useful for objects that change rarely.
-type CachedCollection struct {
-	*TypedCollection
-	cache       map[string]Cacheable
+//
+// TODO(mAdkins): Should this be made thread-safe?
+type CachedCollection[C Cacheable] struct {
+	TypedCollection[C]
+	cache       map[string]C
 	expireAfter time.Duration
 }
 
-func NewCachedCollection(collection *Collection, example interface{}, expireAfter time.Duration) *CachedCollection {
-	return &CachedCollection{
-		TypedCollection: NewTypedCollection(collection, example),
-		cache:           make(map[string]Cacheable),
-		expireAfter:     expireAfter,
+func NewCachedCollection[C Cacheable](collection *Collection, expireAfter time.Duration) *CachedCollection[C] {
+	return &CachedCollection[C]{
+		TypedCollection: TypedCollection[C]{
+			Collection: *collection,
+		},
+		cache:       make(map[string]C),
+		expireAfter: expireAfter,
 	}
 }
 
 // Cacheable must be searchable and loadable.
 type Cacheable interface {
 	Searchable
-	Loadable
+	Expirable
 }
 
-// Loadable may be loaded and then realized from stored fields.
-type Loadable interface {
+// Expirable defines behavior
+type Expirable interface {
 	ExpireAfter(duration time.Duration)
 	Expired() bool
-	Realizable
 }
 
 // Searchable may be used just for searching for a cached item.
@@ -46,79 +48,115 @@ type Searchable interface {
 	Filter() bson.D
 }
 
+// Create item in DB and cache.
+func (c *CachedCollection[Cacheable]) Create(item Cacheable) error {
+	if _, err := c.InsertOne(c.ctx, item); err != nil {
+		return fmt.Errorf("insert item: %w", err)
+	}
+	item.ExpireAfter(c.expireAfter)
+	c.cache[item.CacheKey()] = item
+	return nil
+}
+
 // Delete object in cache and DB.
-func (c *CachedCollection) Delete(item Searchable, idempotent bool) error {
+// Because items are Cacheable (and therefore Searchable) the item itself is passed instead of a filter.
+func (c *CachedCollection[Cacheable]) Delete(item Searchable, idempotent bool) error {
 	delete(c.cache, item.CacheKey())
 	return c.Collection.Delete(item.Filter(), idempotent)
 }
 
-var errItemNotCacheable = errors.New("item not cacheable")
+// DeleteAll all objects in cache and DB.
+func (c *CachedCollection[Cacheable]) DeleteAll() error {
+	// TODO(mAdkins): Why does this compile when c.cache is defined as map[string]C in the struct?
+	c.cache = make(map[string]Cacheable)
+	return c.Collection.DeleteAll()
+}
 
 // Find a cacheable object in either cache or database.
-func (c *CachedCollection) Find(searchFor Searchable) (Cacheable, error) {
-	var found, ok bool
-	var item Cacheable
-
+func (c *CachedCollection[C]) Find(searchFor Searchable) (C, error) {
+	var item C
+	var found bool
 	cacheKey := searchFor.CacheKey()
-	if item, found = c.cache[searchFor.CacheKey()]; found {
-		if item == nil || item.Expired() {
+	if item, found = c.cache[cacheKey]; found {
+		remove := false
+		if check.IsZero[C](item) {
+			remove = true
+		} else {
+			if item.Expired() {
+				delete(c.cache, cacheKey)
+				found = false
+			}
+		}
+		if remove {
 			delete(c.cache, cacheKey)
 			found = false
 		}
 	}
 
 	if !found {
-		itemIF, err := c.TypedCollection.Find(searchFor.Filter())
+		newItem := new(C)
+		err := c.FindOne(c.ctx, searchFor).Decode(newItem)
 		if err != nil {
-			if c.IsNotFound(err) {
-				return nil, fmt.Errorf("no item '%s': %w", cacheKey, err)
+			if IsNotFound(err) {
+				return item, fmt.Errorf("no item '%v': %w", searchFor, err)
 			}
-			return nil, fmt.Errorf("find item '%s': %w", cacheKey, err)
-		}
-		if item, ok = itemIF.(Cacheable); !ok {
-			return nil, errItemNotCacheable
+			return item, fmt.Errorf("find item '%v': %w", searchFor, err)
 		}
 
-		item.ExpireAfter(c.expireAfter)
-		c.cache[cacheKey] = item
+		return *newItem, nil
 	}
 
 	return item, nil
 }
 
 // FindOrCreate returns an existing cacheable object or creates it if it does not already exist.
-func (c *CachedCollection) FindOrCreate(cacheItem Cacheable) (Cacheable, error) {
+func (c *CachedCollection[Cacheable]) FindOrCreate(cacheItem Cacheable) (Cacheable, error) {
+	// Can't inherit from TypedCollection here, must redo the algorithm due to caching.
 	item, err := c.Find(cacheItem)
 	if err != nil {
-		if !c.IsNotFound(err) {
-			return nil, err
+		if !IsNotFound(err) {
+			return item, err
 		}
 
 		err = c.Create(cacheItem)
 		if err != nil {
-			return nil, err
+			return item, err
 		}
 
 		item, err = c.Find(cacheItem)
 		if err != nil {
-			return nil, fmt.Errorf("find just created item: %w", err)
+			return item, fmt.Errorf("find just created item: %w", err)
 		}
 	}
 
 	return item, nil
 }
 
-// Instantiate the Cacheable item specified by the item type.
-func (c *CachedCollection) Instantiate() Cacheable {
-	// TODO: can we assume that the item type will return a Cacheable?
-	return reflect.New(c.itemType).Interface().(Cacheable)
-}
-
 // InvalidateByPrefix removes items from the cache if the item key has the specified prefix.
-func (c *CachedCollection) InvalidateByPrefix(prefix string) {
+func (c *CachedCollection[T]) InvalidateByPrefix(prefix string) {
 	for k := range c.cache {
 		if strings.HasPrefix(k, prefix) {
 			delete(c.cache, k)
 		}
 	}
+}
+
+// Iterate over a set of items, applying the specified function to each one.
+func (c *CachedCollection[T]) Iterate(filter bson.D, fn func(item T) error) error {
+	if cursor, err := c.Collection.Collection.Find(c.ctx, filter); err != nil {
+		return fmt.Errorf("find items: %w", err)
+	} else {
+		item := new(T)
+		for cursor.Next(c.ctx) {
+			if err := cursor.Decode(item); err != nil {
+				return fmt.Errorf("decode item: %w", err)
+			}
+
+			if err := fn(*item); err != nil {
+				return fmt.Errorf("apply function: %w", err)
+			}
+		}
+	}
+
+	return nil
 }

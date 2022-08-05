@@ -1,3 +1,4 @@
+//go:build database
 // +build database
 
 package mdb
@@ -7,6 +8,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/suite"
+
+	"github.com/madkins23/go-mongo/test"
 )
 
 type indexTestSuite struct {
@@ -20,7 +23,7 @@ func TestIndexSuite(t *testing.T) {
 
 func (suite *indexTestSuite) SetupTest() {
 	var err error
-	suite.collection, err = suite.access.Collection(context.TODO(), "test-index-collection", testValidatorJSON)
+	suite.collection, err = suite.access.Collection(context.TODO(), "test-index-collection", test.SimpleValidatorJSON)
 	suite.Require().NoError(err)
 	suite.NotNil(suite.collection)
 }
@@ -60,7 +63,7 @@ func (suite *indexTestSuite) TestIndexThree() {
 func (suite *indexTestSuite) TestIndexFinisher() {
 	index := NewIndexDescription(true, "alpha", "bravo")
 	collection, err := suite.access.Collection(context.TODO(), "test-index-finisher-collection",
-		testValidatorJSON, index.Finisher())
+		test.SimpleValidatorJSON, index.Finisher())
 	suite.Require().NoError(err)
 	suite.NotNil(collection)
 	NewIndexTester().TestIndexes(suite.T(), collection, index)
