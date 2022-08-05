@@ -12,7 +12,7 @@ import (
 // CachedCollection caches Mongo-stored objects so that the same object is always returned.
 // This is most useful for objects that change rarely.
 //
-// TODO: Should this be made thread-safe?
+// TODO(mAdkins): Should this be made thread-safe?
 type CachedCollection[C Cacheable] struct {
 	TypedCollection[C]
 	cache       map[string]C
@@ -67,7 +67,7 @@ func (c *CachedCollection[Cacheable]) Delete(item Searchable, idempotent bool) e
 
 // DeleteAll all objects in cache and DB.
 func (c *CachedCollection[Cacheable]) DeleteAll() error {
-	// TODO: Why does this compile when c.cache is defined as map[string]C in the struct?
+	// TODO(mAdkins): Why does this compile when c.cache is defined as map[string]C in the struct?
 	c.cache = make(map[string]Cacheable)
 	return c.Collection.DeleteAll()
 }
