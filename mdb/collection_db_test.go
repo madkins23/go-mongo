@@ -141,16 +141,17 @@ func (suite *collectionTestSuite) TestIterate() {
 	suite.Require().NoError(suite.collection.Create(test.SimpleItem3))
 	count := 0
 	var alpha []string
-	suite.NoError(suite.collection.Iterate(bson.D{}, func(item interface{}) error {
-		if bd, ok := item.(bson.D); ok {
-			m := bd.Map()
-			if a, ok := m["alpha"].(string); ok {
-				alpha = append(alpha, a)
+	suite.NoError(suite.collection.Iterate(NoFilter(),
+		func(item interface{}) error {
+			if bd, ok := item.(bson.D); ok {
+				m := bd.Map()
+				if a, ok := m["alpha"].(string); ok {
+					alpha = append(alpha, a)
+				}
 			}
-		}
-		count++
-		return nil
-	}))
+			count++
+			return nil
+		}))
 	suite.Equal(3, count)
 	suite.Equal([]string{"one", "two", "three"}, alpha)
 }
@@ -161,16 +162,17 @@ func (suite *collectionTestSuite) TestIterateFiltered() {
 	suite.Require().NoError(suite.collection.Create(test.SimpleItem3))
 	count := 0
 	var alpha []string
-	suite.NoError(suite.collection.Iterate(bson.D{bson.E{Key: "alpha", Value: "one"}}, func(item interface{}) error {
-		if bd, ok := item.(bson.D); ok {
-			m := bd.Map()
-			if a, ok := m["alpha"].(string); ok {
-				alpha = append(alpha, a)
+	suite.NoError(suite.collection.Iterate(bson.D{bson.E{Key: "alpha", Value: "one"}},
+		func(item interface{}) error {
+			if bd, ok := item.(bson.D); ok {
+				m := bd.Map()
+				if a, ok := m["alpha"].(string); ok {
+					alpha = append(alpha, a)
+				}
 			}
-		}
-		count++
-		return nil
-	}))
+			count++
+			return nil
+		}))
 	suite.Equal(1, count)
 	suite.Equal([]string{"one"}, alpha)
 }

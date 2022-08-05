@@ -140,3 +140,23 @@ func (c *CachedCollection[T]) InvalidateByPrefix(prefix string) {
 		}
 	}
 }
+
+// Iterate over a set of items, applying the specified function to each one.
+func (c *CachedCollection[T]) Iterate(filter bson.D, fn func(item T) error) error {
+	if cursor, err := c.Collection.Collection.Find(c.ctx, filter); err != nil {
+		return fmt.Errorf("find items: %w", err)
+	} else {
+		item := new(T)
+		for cursor.Next(c.ctx) {
+			if err := cursor.Decode(item); err != nil {
+				return fmt.Errorf("decode item: %w", err)
+			}
+
+			if err := fn(*item); err != nil {
+				return fmt.Errorf("apply function: %w", err)
+			}
+		}
+	}
+
+	return nil
+}

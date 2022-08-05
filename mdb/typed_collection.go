@@ -57,7 +57,6 @@ func (c *TypedCollection[T]) FindOrCreate(filter bson.D, item *T) (*T, error) {
 }
 
 // Iterate over a set of items, applying the specified function to each one.
-// The items passed to the function will likely contain bson objects.
 func (c *TypedCollection[T]) Iterate(filter bson.D, fn func(item *T) error) error {
 	if cursor, err := c.Collection.Collection.Find(c.ctx, filter); err != nil {
 		return fmt.Errorf("find items: %w", err)

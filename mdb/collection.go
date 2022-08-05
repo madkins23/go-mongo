@@ -9,9 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-var (
-	errMissingCollectionName = errors.New("no collection name argument")
-)
+var errMissingCollectionName = errors.New("no collection name argument")
 
 // CollectionFinisher provides a way to add special processing when creating a collection.
 type CollectionFinisher func(access *Access, collection *Collection) error
@@ -142,4 +140,10 @@ func (c *Collection) StringValuesFor(field string, filter bson.D) ([]string, err
 	}
 
 	return result, nil
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+func NoFilter() bson.D {
+	return bson.D{}
 }

@@ -115,7 +115,7 @@ func (suite *typedTestSuite) TestIterate() {
 	suite.Require().NoError(suite.typed.Create(test.SimpleItem3))
 	count := 0
 	var alpha []string
-	suite.NoError(suite.typed.Iterate(bson.D{},
+	suite.NoError(suite.typed.Iterate(NoFilter(),
 		func(item *test.SimpleItem) error {
 			alpha = append(alpha, item.Alpha)
 			count++

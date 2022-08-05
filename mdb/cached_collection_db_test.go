@@ -113,37 +113,37 @@ func (suite *cacheTestSuite) TestCountDeleteAll() {
 	suite.Equal(int64(0), count)
 }
 
-//func (suite *cacheTestSuite) TestIterate() {
-//	suite.Require().NoError(suite.cached.Create(test.SimpleItem1))
-//	suite.Require().NoError(suite.cached.Create(test.SimpleItem2))
-//	suite.Require().NoError(suite.cached.Create(test.SimpleItem3))
-//	count := 0
-//	var alpha []string
-//	suite.NoError(suite.cached.Iterate(bson.D{},
-//		func(item *test.SimpleItem) error {
-//			alpha = append(alpha, item.Alpha)
-//			count++
-//			return nil
-//		}))
-//	suite.Equal(3, count)
-//	suite.Equal([]string{"one", "two", "three"}, alpha)
-//}
-//
-//func (suite *cacheTestSuite) TestIterateFiltered() {
-//	suite.Require().NoError(suite.cached.Create(test.SimpleItem1))
-//	suite.Require().NoError(suite.cached.Create(test.SimpleItem2))
-//	suite.Require().NoError(suite.cached.Create(test.SimpleItem3))
-//	count := 0
-//	var alpha []string
-//	suite.NoError(suite.cached.Iterate(bson.D{bson.E{Key: "bravo", Value: 2}},
-//		func(item *test.SimpleItem) error {
-//			alpha = append(alpha, item.Alpha)
-//			count++
-//			return nil
-//		}))
-//	suite.Equal(1, count)
-//	suite.Equal([]string{"two"}, alpha)
-//}
+func (suite *cacheTestSuite) TestIterate() {
+	suite.Require().NoError(suite.cached.Create(test.SimpleItem1))
+	suite.Require().NoError(suite.cached.Create(test.SimpleItem2))
+	suite.Require().NoError(suite.cached.Create(test.SimpleItem3))
+	count := 0
+	var alpha []string
+	suite.NoError(suite.cached.Iterate(NoFilter(),
+		func(item *test.SimpleItem) error {
+			alpha = append(alpha, item.Alpha)
+			count++
+			return nil
+		}))
+	suite.Equal(3, count)
+	suite.Equal([]string{"one", "two", "three"}, alpha)
+}
+
+func (suite *cacheTestSuite) TestIterateFiltered() {
+	suite.Require().NoError(suite.cached.Create(test.SimpleItem1))
+	suite.Require().NoError(suite.cached.Create(test.SimpleItem2))
+	suite.Require().NoError(suite.cached.Create(test.SimpleItem3))
+	count := 0
+	var alpha []string
+	suite.NoError(suite.cached.Iterate(bson.D{bson.E{Key: "bravo", Value: 2}},
+		func(item *test.SimpleItem) error {
+			alpha = append(alpha, item.Alpha)
+			count++
+			return nil
+		}))
+	suite.Equal(1, count)
+	suite.Equal([]string{"two"}, alpha)
+}
 
 func (suite *cacheTestSuite) TestStringValuesFor() {
 	collection, err := suite.access.Collection(context.TODO(), "mdb-cached-collection-string-values", "")
