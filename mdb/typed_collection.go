@@ -33,6 +33,29 @@ func (c *TypedCollection[T]) Find(filter bson.D) (*T, error) {
 	return item, nil
 }
 
+// FindOrCreate returns an existing cacheable object or creates it if it does not already exist.
+func (c *TypedCollection[T]) FindOrCreate(filter bson.D, item *T) (*T, error) {
+	// Can't inherit from TypedCollection here, must redo the algorithm due to typing.
+	found, err := c.Find(filter)
+	if err != nil {
+		if !c.IsNotFound(err) {
+			return found, err
+		}
+
+		err = c.Create(item)
+		if err != nil {
+			return found, err
+		}
+
+		found, err = c.Find(filter)
+		if err != nil {
+			return found, fmt.Errorf("find just created item: %w", err)
+		}
+	}
+
+	return found, nil
+}
+
 // Iterate over a set of items, applying the specified function to each one.
 // The items passed to the function will likely contain bson objects.
 func (c *TypedCollection[T]) Iterate(filter bson.D, fn func(item *T) error) error {

@@ -57,6 +57,30 @@ func (suite *typedTestSuite) TestCreateDuplicate() {
 	suite.Require().True(suite.access.IsDuplicate(err))
 }
 
+func (suite *typedTestSuite) TestFindNone() {
+	item, err := suite.typed.Find(test.SimpleKeyOfTheBeast.Filter())
+	suite.Require().Error(err)
+	suite.True(suite.typed.IsNotFound(err))
+	suite.Nil(item)
+}
+
+func (suite *typedTestSuite) TestFindOrCreate() {
+	item, err := suite.typed.Find(test.SimpleItem2.Filter())
+	suite.Require().Error(err)
+	suite.True(suite.typed.IsNotFound(err))
+	suite.Nil(item)
+	item, err = suite.typed.FindOrCreate(test.SimpleItem2.Filter(), test.SimpleItem2)
+	suite.Require().NoError(err)
+	suite.NotNil(item)
+	item, err = suite.typed.Find(test.SimpleItem2.Filter())
+	suite.Require().NoError(err)
+	suite.NotNil(item)
+	item2, err := suite.typed.FindOrCreate(test.SimpleItem2.Filter(), test.SimpleItem2)
+	suite.Require().NoError(err)
+	suite.NotNil(item2)
+	suite.Equal(item, item2)
+}
+
 func (suite *typedTestSuite) TestCreateFindDelete() {
 	err := suite.typed.Create(test.SimpleItem2)
 	suite.Require().NoError(err)
@@ -77,11 +101,17 @@ func (suite *typedTestSuite) TestCreateFindDelete() {
 	suite.Require().NoError(err)
 }
 
-func (suite *typedTestSuite) TestFindNone() {
-	item, err := suite.typed.Find(test.SimpleKeyOfTheBeast.Filter())
-	suite.Require().Error(err)
-	suite.True(suite.typed.IsNotFound(err))
-	suite.Nil(item)
+func (suite *typedTestSuite) TestCountDeleteAll() {
+	suite.Require().NoError(suite.typed.Create(test.SimpleItem1))
+	suite.Require().NoError(suite.typed.Create(test.SimpleItem2))
+	suite.Require().NoError(suite.typed.Create(test.SimpleItem3))
+	count, err := suite.typed.Count(bson.D{})
+	suite.NoError(err)
+	suite.Equal(int64(3), count)
+	suite.NoError(suite.typed.DeleteAll())
+	count, err = suite.typed.Count(bson.D{})
+	suite.NoError(err)
+	suite.Equal(int64(0), count)
 }
 
 func (suite *typedTestSuite) TestIterate() {
@@ -114,6 +144,31 @@ func (suite *typedTestSuite) TestIterateFiltered() {
 		}))
 	suite.Equal(1, count)
 	suite.Equal([]string{"two"}, alpha)
+}
+
+func (suite *typedTestSuite) TestStringValuesFor() {
+	collection, err := suite.access.Collection(context.TODO(), "mdb-typed-collection-string-values", "")
+	typed := NewTypedCollection[test.SimpleItem](collection)
+	suite.Require().NoError(err)
+	suite.NotNil(typed)
+	for i := 0; i < 5; i++ {
+		suite.Require().NoError(typed.Create(&test.SimpleItem{
+			SimpleKey: test.SimpleKey{
+				Alpha: fmt.Sprintf("Alpha #%d", i),
+				Bravo: i,
+			},
+			Charlie: "There can be only one",
+		}))
+	}
+	values, err := typed.StringValuesFor("alpha", nil)
+	suite.Require().NoError(err)
+	suite.Len(values, 5)
+	values, err = typed.StringValuesFor("charlie", nil)
+	suite.Require().NoError(err)
+	suite.Len(values, 1)
+	values, err = typed.StringValuesFor("goober", nil)
+	suite.Require().NoError(err)
+	suite.Len(values, 0)
 }
 
 func (suite *typedTestSuite) TestCreateFindDeleteWrapped() {
@@ -160,6 +215,8 @@ func (suite *typedTestSuite) TestCreateFindDeleteWrapped() {
 	suite.Require().NoError(err)
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 type WrappedItems struct {
 	test.SimpleItem `bson:"inline"`
 	Single          *mdbson.Wrapper[test.Wrappable]
@@ -173,8 +230,6 @@ func (wi *WrappedItems) Filter() bson.D {
 		{"bravo", wi.Bravo},
 	}
 }
-
-////////////////////////////////////////////////////////////////////////////////
 
 func MakeWrappedItems() *WrappedItems {
 	items := []*mdbson.Wrapper[test.Wrappable]{

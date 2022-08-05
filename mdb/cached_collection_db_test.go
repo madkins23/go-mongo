@@ -4,10 +4,12 @@ package mdb
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/madkins23/go-mongo/test"
 )
@@ -46,6 +48,30 @@ func (suite *cacheTestSuite) TestCreateDuplicate() {
 	suite.Require().True(suite.access.IsDuplicate(err))
 }
 
+func (suite *cacheTestSuite) TestFindNone() {
+	item, err := suite.cached.Find(test.SimpleKeyOfTheBeast)
+	suite.Require().Error(err)
+	suite.True(suite.cached.IsNotFound(err))
+	suite.Nil(item)
+}
+
+func (suite *cacheTestSuite) TestFindOrCreate() {
+	item, err := suite.cached.Find(test.SimpleItem2)
+	suite.Require().Error(err)
+	suite.True(suite.cached.IsNotFound(err))
+	suite.Nil(item)
+	item, err = suite.cached.FindOrCreate(test.SimpleItem2)
+	suite.Require().NoError(err)
+	suite.NotNil(item)
+	item, err = suite.cached.Find(test.SimpleItem2)
+	suite.Require().NoError(err)
+	suite.NotNil(item)
+	item2, err := suite.cached.FindOrCreate(test.SimpleItem2)
+	suite.Require().NoError(err)
+	suite.NotNil(item2)
+	suite.Equal(item, item2)
+}
+
 func (suite *cacheTestSuite) TestCreateFindDelete() {
 	err := suite.cached.Create(test.SimpleItem1)
 	suite.Require().NoError(err)
@@ -70,28 +96,17 @@ func (suite *cacheTestSuite) TestCreateFindDelete() {
 	suite.Require().NoError(err)
 }
 
-func (suite *cacheTestSuite) TestFindOrCreate() {
-	item, err := suite.cached.Find(test.SimpleItem2)
-	suite.Require().Error(err)
-	suite.True(suite.cached.IsNotFound(err))
-	suite.Nil(item)
-	item, err = suite.cached.FindOrCreate(test.SimpleItem2)
-	suite.Require().NoError(err)
-	suite.NotNil(item)
-	item, err = suite.cached.Find(test.SimpleItem2)
-	suite.Require().NoError(err)
-	suite.NotNil(item)
-	item2, err := suite.cached.FindOrCreate(test.SimpleItem2)
-	suite.Require().NoError(err)
-	suite.NotNil(item2)
-	suite.Equal(item, item2)
-}
-
-func (suite *cacheTestSuite) TestFindNone() {
-	item, err := suite.cached.Find(test.SimpleKeyOfTheBeast)
-	suite.Require().Error(err)
-	suite.True(suite.cached.IsNotFound(err))
-	suite.Nil(item)
+func (suite *cacheTestSuite) TestCountDeleteAll() {
+	suite.Require().NoError(suite.cached.Create(test.SimpleItem1))
+	suite.Require().NoError(suite.cached.Create(test.SimpleItem2))
+	suite.Require().NoError(suite.cached.Create(test.SimpleItem3))
+	count, err := suite.cached.Count(bson.D{})
+	suite.NoError(err)
+	suite.Equal(int64(3), count)
+	suite.NoError(suite.cached.DeleteAll())
+	count, err = suite.cached.Count(bson.D{})
+	suite.NoError(err)
+	suite.Equal(int64(0), count)
 }
 
 //func (suite *cacheTestSuite) TestIterate() {
@@ -125,6 +140,31 @@ func (suite *cacheTestSuite) TestFindNone() {
 //	suite.Equal(1, count)
 //	suite.Equal([]string{"two"}, alpha)
 //}
+
+func (suite *cacheTestSuite) TestStringValuesFor() {
+	collection, err := suite.access.Collection(context.TODO(), "mdb-cached-collection-string-values", "")
+	typed := NewCachedCollection[*test.SimpleItem](collection, time.Hour)
+	suite.Require().NoError(err)
+	suite.NotNil(typed)
+	for i := 0; i < 5; i++ {
+		suite.Require().NoError(typed.Create(&test.SimpleItem{
+			SimpleKey: test.SimpleKey{
+				Alpha: fmt.Sprintf("Alpha #%d", i),
+				Bravo: i,
+			},
+			Charlie: "There can be only one",
+		}))
+	}
+	values, err := typed.StringValuesFor("alpha", nil)
+	suite.Require().NoError(err)
+	suite.Len(values, 5)
+	values, err = typed.StringValuesFor("charlie", nil)
+	suite.Require().NoError(err)
+	suite.Len(values, 1)
+	values, err = typed.StringValuesFor("goober", nil)
+	suite.Require().NoError(err)
+	suite.Len(values, 0)
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 //

@@ -86,6 +86,23 @@ func (suite *collectionTestSuite) TestFindNone() {
 	suite.Nil(item)
 }
 
+func (suite *collectionTestSuite) TestFindOrCreate() {
+	item, err := suite.collection.Find(test.SimpleItem2.Filter())
+	suite.Require().Error(err)
+	suite.True(suite.collection.IsNotFound(err))
+	suite.Nil(item)
+	item, err = suite.collection.FindOrCreate(test.SimpleItem2.Filter(), test.SimpleItem2)
+	suite.Require().NoError(err)
+	suite.NotNil(item)
+	item, err = suite.collection.Find(test.SimpleItem2.Filter())
+	suite.Require().NoError(err)
+	suite.NotNil(item)
+	item2, err := suite.collection.FindOrCreate(test.SimpleItem2.Filter(), test.SimpleItem2)
+	suite.Require().NoError(err)
+	suite.NotNil(item2)
+	suite.Equal(item, item2)
+}
+
 func (suite *collectionTestSuite) TestCreateFindDelete() {
 	suite.Require().NoError(suite.collection.Create(test.SimpleItem2))
 	item, err := suite.collection.Find(test.SimpleItem2.Filter())
@@ -163,14 +180,14 @@ func (suite *collectionTestSuite) TestStringValuesFor() {
 	suite.Require().NoError(err)
 	suite.NotNil(collection)
 	for i := 0; i < 5; i++ {
-		_, err := collection.InsertOne(collection.Context(), &test.SimpleItem{
-			SimpleKey: test.SimpleKey{
-				Alpha: fmt.Sprintf("Alpha #%d", i),
-				Bravo: i,
-			},
-			Charlie: "There can be only one",
-		})
-		suite.Require().NoError(err)
+		suite.Require().NoError(
+			collection.Create(&test.SimpleItem{
+				SimpleKey: test.SimpleKey{
+					Alpha: fmt.Sprintf("Alpha #%d", i),
+					Bravo: i,
+				},
+				Charlie: "There can be only one",
+			}))
 	}
 	values, err := collection.StringValuesFor("alpha", nil)
 	suite.Require().NoError(err)

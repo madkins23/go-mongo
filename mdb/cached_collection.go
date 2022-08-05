@@ -14,14 +14,16 @@ import (
 //
 // TODO: Should this be made thread-safe?
 type CachedCollection[C Cacheable] struct {
-	Collection
+	TypedCollection[C]
 	cache       map[string]C
 	expireAfter time.Duration
 }
 
 func NewCachedCollection[C Cacheable](collection *Collection, expireAfter time.Duration) *CachedCollection[C] {
 	return &CachedCollection[C]{
-		Collection:  *collection,
+		TypedCollection: TypedCollection[C]{
+			Collection: *collection,
+		},
 		cache:       make(map[string]C),
 		expireAfter: expireAfter,
 	}
@@ -57,6 +59,7 @@ func (c *CachedCollection[Cacheable]) Create(item Cacheable) error {
 }
 
 // Delete object in cache and DB.
+// Because items are Cacheable (and therefore Searchable) the item itself is passed instead of a filter.
 func (c *CachedCollection[Cacheable]) Delete(item Searchable, idempotent bool) error {
 	delete(c.cache, item.CacheKey())
 	return c.Collection.Delete(item.Filter(), idempotent)
@@ -108,6 +111,7 @@ func (c *CachedCollection[C]) Find(searchFor Searchable) (C, error) {
 
 // FindOrCreate returns an existing cacheable object or creates it if it does not already exist.
 func (c *CachedCollection[Cacheable]) FindOrCreate(cacheItem Cacheable) (Cacheable, error) {
+	// Can't inherit from TypedCollection here, must redo the algorithm due to caching.
 	item, err := c.Find(cacheItem)
 	if err != nil {
 		if !c.IsNotFound(err) {

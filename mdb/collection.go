@@ -153,6 +153,29 @@ func (c *Collection) Find(filter bson.D) (interface{}, error) {
 	return item, nil
 }
 
+// FindOrCreate returns an existing object or creates it if it does not already exist.
+// The filter must correctly find the object as a second Find is done after any necessary creation.
+func (c *Collection) FindOrCreate(filter bson.D, item interface{}) (interface{}, error) {
+	found, err := c.Find(filter)
+	if err != nil {
+		if !c.IsNotFound(err) {
+			return found, err
+		}
+
+		err = c.Create(item)
+		if err != nil {
+			return found, err
+		}
+
+		found, err = c.Find(filter)
+		if err != nil {
+			return found, fmt.Errorf("find just created item: %w", err)
+		}
+	}
+
+	return found, nil
+}
+
 // Iterate over a set of items, applying the specified function to each one.
 // The items passed to the function will likely contain bson objects.
 func (c *Collection) Iterate(filter bson.D, fn func(item interface{}) error) error {
@@ -174,6 +197,7 @@ func (c *Collection) Iterate(filter bson.D, fn func(item interface{}) error) err
 
 var errNotString = errors.New("value not a string")
 
+// StringValuesFor returns an array of distinct string values for the specified filter and field.
 func (c *Collection) StringValuesFor(field string, filter bson.D) ([]string, error) {
 	if filter == nil {
 		filter = bson.D{}
