@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/madkins23/go-type/reg"
 	"github.com/stretchr/testify/suite"
 	"go.mongodb.org/mongo-driver/bson"
 
@@ -25,6 +26,9 @@ func TestCacheSuite(t *testing.T) {
 
 func (suite *cacheTestSuite) SetupSuite() {
 	suite.AccessTestSuite.SetupSuite()
+	reg.Highlander().Clear()
+	suite.Require().NoError(test.Register())
+	suite.Require().NoError(test.RegisterWrapped())
 	collection, err := suite.access.Collection(context.TODO(), "test-cache-collection", test.SimpleValidatorJSON)
 	suite.Require().NoError(err)
 	suite.NotNil(collection)
@@ -143,11 +147,11 @@ func (suite *cacheTestSuite) TestCountDeleteAll() {
 
 func (suite *cacheTestSuite) TestStringValuesFor() {
 	collection, err := suite.access.Collection(context.TODO(), "mdb-cached-collection-string-values", "")
-	typed := NewCachedCollection[*test.SimpleItem](collection, time.Hour)
 	suite.Require().NoError(err)
-	suite.NotNil(typed)
+	cached := NewCachedCollection[*test.SimpleItem](collection, time.Hour)
+	suite.NotNil(cached)
 	for i := 0; i < 5; i++ {
-		suite.Require().NoError(typed.Create(&test.SimpleItem{
+		suite.Require().NoError(cached.Create(&test.SimpleItem{
 			SimpleKey: test.SimpleKey{
 				Alpha: fmt.Sprintf("Alpha #%d", i),
 				Bravo: i,
@@ -155,28 +159,64 @@ func (suite *cacheTestSuite) TestStringValuesFor() {
 			Charlie: "There can be only one",
 		}))
 	}
-	values, err := typed.StringValuesFor("alpha", nil)
+	values, err := cached.StringValuesFor("alpha", nil)
 	suite.Require().NoError(err)
 	suite.Len(values, 5)
-	values, err = typed.StringValuesFor("charlie", nil)
+	values, err = cached.StringValuesFor("charlie", nil)
 	suite.Require().NoError(err)
 	suite.Len(values, 1)
-	values, err = typed.StringValuesFor("goober", nil)
+	values, err = cached.StringValuesFor("goober", nil)
 	suite.Require().NoError(err)
 	suite.Len(values, 0)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-//
-//type CacheableItem struct {
-//	test.SimpleItem
-//	expire time.Time
-//}
-//
-//func (ci *CacheableItem) ExpireAfter(duration time.Duration) {
-//	ci.expire = time.Now().Add(duration)
-//}
-//
-//func (ci *CacheableItem) Expired() bool {
-//	return time.Now().After(ci.expire)
-//}
+
+func (suite *cacheTestSuite) TestCreateFindDeleteWrapped() {
+	collection, err := suite.access.Collection(context.TODO(), "mdb-cached-collection-wrapped-items", "")
+	suite.Require().NoError(err)
+	wrapped := NewCachedCollection[*WrappedItems](collection, time.Hour)
+	suite.Require().NotNil(wrapped)
+	suite.Require().NoError(wrapped.DeleteAll())
+	wrappedItems := MakeWrappedItems()
+	suite.Require().NoError(wrapped.Create(wrappedItems))
+	foundWrapped, err := wrapped.Find(wrappedItems)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(foundWrapped)
+	suite.Equal(wrappedItems, foundWrapped)
+	suite.Equal(test.ValueText, foundWrapped.Single.Get().String())
+	for _, item := range foundWrapped.Array {
+		switch item.Get().Key() {
+		case "text":
+			suite.Equal(test.ValueText, item.Get().String())
+		case "numeric":
+			if numVal, ok := item.Get().(*test.NumericValue); ok {
+				suite.Equal(test.ValueNumber, numVal.Number)
+			} else {
+				suite.Fail("Not NumericValue: " + item.Get().String())
+			}
+		case "random":
+			random := item.Get().String()
+			fmt.Printf("Random:  %s\n", random)
+			suite.True(len(random) >= test.RandomMinimum)
+			suite.True(len(random) <= test.RandomMaximum)
+		default:
+			suite.Fail("Unknown item key: '" + item.Get().Key() + "'")
+		}
+	}
+	for key, item := range foundWrapped.Map {
+		suite.Equal(key, item.Get().Key())
+	}
+	cacheKey := wrappedItems.CacheKey()
+	suite.NotEmpty(cacheKey)
+	err = wrapped.Delete(wrappedItems, false)
+	suite.Require().NoError(err)
+	noItem, err := wrapped.Find(wrappedItems)
+	suite.Require().Error(err)
+	suite.True(wrapped.IsNotFound(err))
+	suite.Nil(noItem)
+	err = wrapped.Delete(wrappedItems, false)
+	suite.Require().Error(err)
+	err = wrapped.Delete(wrappedItems, true)
+	suite.Require().NoError(err)
+}

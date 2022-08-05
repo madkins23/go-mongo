@@ -11,14 +11,12 @@ import (
 	"github.com/stretchr/testify/suite"
 	"go.mongodb.org/mongo-driver/bson"
 
-	"github.com/madkins23/go-mongo/mdbson"
 	"github.com/madkins23/go-mongo/test"
 )
 
 type typedTestSuite struct {
 	AccessTestSuite
-	typed   *TypedCollection[test.SimpleItem]
-	wrapped *TypedCollection[WrappedItems]
+	typed *TypedCollection[test.SimpleItem]
 }
 
 func TestTypedSuite(t *testing.T) {
@@ -37,9 +35,6 @@ func (suite *typedTestSuite) SetupSuite() {
 	suite.typed = NewTypedCollection[test.SimpleItem](collection)
 	suite.Require().NoError(suite.typed.DeleteAll())
 	suite.Require().NotNil(suite.typed)
-	suite.wrapped = NewTypedCollection[WrappedItems](collection)
-	suite.Require().NotNil(suite.wrapped)
-	suite.Require().NoError(suite.wrapped.DeleteAll())
 }
 
 func (suite *typedTestSuite) TearDownTest() {
@@ -148,8 +143,8 @@ func (suite *typedTestSuite) TestIterateFiltered() {
 
 func (suite *typedTestSuite) TestStringValuesFor() {
 	collection, err := suite.access.Collection(context.TODO(), "mdb-typed-collection-string-values", "")
-	typed := NewTypedCollection[test.SimpleItem](collection)
 	suite.Require().NoError(err)
+	typed := NewTypedCollection[test.SimpleItem](collection)
 	suite.NotNil(typed)
 	for i := 0; i < 5; i++ {
 		suite.Require().NoError(typed.Create(&test.SimpleItem{
@@ -171,13 +166,20 @@ func (suite *typedTestSuite) TestStringValuesFor() {
 	suite.Len(values, 0)
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 func (suite *typedTestSuite) TestCreateFindDeleteWrapped() {
-	wrapped := MakeWrappedItems()
-	suite.Require().NoError(suite.typed.Create(wrapped))
-	foundWrapped, err := suite.wrapped.Find(wrapped.Filter())
+	collection, err := suite.access.Collection(context.TODO(), "mdb-cached-collection-wrapped-items", "")
+	suite.Require().NoError(err)
+	wrapped := NewTypedCollection[WrappedItems](collection)
+	suite.Require().NotNil(wrapped)
+	suite.Require().NoError(wrapped.DeleteAll())
+	wrappedItems := MakeWrappedItems()
+	suite.Require().NoError(wrapped.Create(wrappedItems))
+	foundWrapped, err := wrapped.Find(wrappedItems.Filter())
 	suite.Require().NoError(err)
 	suite.Require().NotNil(foundWrapped)
-	suite.Equal(wrapped, foundWrapped)
+	suite.Equal(wrappedItems, foundWrapped)
 	suite.Equal(test.ValueText, foundWrapped.Single.Get().String())
 	for _, item := range foundWrapped.Array {
 		switch item.Get().Key() {
@@ -201,56 +203,16 @@ func (suite *typedTestSuite) TestCreateFindDeleteWrapped() {
 	for key, item := range foundWrapped.Map {
 		suite.Equal(key, item.Get().Key())
 	}
-	cacheKey := wrapped.CacheKey()
+	cacheKey := wrappedItems.CacheKey()
 	suite.NotEmpty(cacheKey)
-	err = suite.typed.Delete(wrapped.Filter(), false)
+	err = wrapped.Delete(wrappedItems.Filter(), false)
 	suite.Require().NoError(err)
-	noItem, err := suite.typed.Find(wrapped.Filter())
+	noItem, err := wrapped.Find(wrappedItems.Filter())
 	suite.Require().Error(err)
-	suite.True(suite.typed.IsNotFound(err))
+	suite.True(wrapped.IsNotFound(err))
 	suite.Nil(noItem)
-	err = suite.typed.Delete(wrapped.Filter(), false)
+	err = wrapped.Delete(wrappedItems.Filter(), false)
 	suite.Require().Error(err)
-	err = suite.typed.Delete(wrapped.Filter(), true)
+	err = wrapped.Delete(wrappedItems.Filter(), true)
 	suite.Require().NoError(err)
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-type WrappedItems struct {
-	test.SimpleItem `bson:"inline"`
-	Single          *mdbson.Wrapper[test.Wrappable]
-	Array           []*mdbson.Wrapper[test.Wrappable]
-	Map             map[string]*mdbson.Wrapper[test.Wrappable]
-}
-
-func (wi *WrappedItems) Filter() bson.D {
-	return bson.D{
-		{"alpha", wi.Alpha},
-		{"bravo", wi.Bravo},
-	}
-}
-
-func MakeWrappedItems() *WrappedItems {
-	items := []*mdbson.Wrapper[test.Wrappable]{
-		mdbson.Wrap[test.Wrappable](&test.TextValue{Text: test.ValueText}),
-		mdbson.Wrap[test.Wrappable](&test.NumericValue{Number: test.ValueNumber}),
-		mdbson.Wrap[test.Wrappable](&test.RandomValue{}),
-	}
-	wrapped := &WrappedItems{
-		SimpleItem: test.SimpleItem{
-			SimpleKey: test.SimpleKey{
-				Alpha: "Wrapped",
-				Bravo: 23,
-			},
-			Charlie: "Need this to pass validation",
-		},
-		Single: items[0],
-		Array:  items,
-		Map:    make(map[string]*mdbson.Wrapper[test.Wrappable], len(items)),
-	}
-	for _, item := range items {
-		wrapped.Map[item.Get().Key()] = item
-	}
-	return wrapped
 }
