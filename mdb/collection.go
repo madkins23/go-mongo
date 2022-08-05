@@ -14,6 +14,9 @@ var (
 	errMissingCollectionName = errors.New("no collection name argument")
 )
 
+// TODO(mAdkins): It seems odd that there are two Access methods here.
+//  Yet they reference the Collection struct defined herein. WTF?
+
 // CollectionExists checks to see if a specific collection already exists.
 func (a *Access) CollectionExists(name string) (bool, error) {
 	if name == "" {
