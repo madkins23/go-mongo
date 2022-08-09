@@ -42,6 +42,10 @@ func (suite *collectionTestSuite) TestCollectionValidator() {
 	collection, err := suite.access.Collection(context.TODO(), "test-collection-validator", test.SimpleValidatorJSON)
 	suite.Require().NoError(err)
 	suite.NotNil(collection)
+	suite.Require().NoError(collection.Create(test.SimpleItem1))
+	err = collection.Create(test.SimplyInvalid)
+	suite.Require().Error(err)
+	suite.Assert().True(IsValidationFailure(err))
 }
 
 func (suite *collectionTestSuite) TestCollectionValidatorFinisher() {
@@ -56,6 +60,10 @@ func (suite *collectionTestSuite) TestCollectionValidatorFinisher() {
 	suite.Require().NoError(err)
 	suite.NotNil(collection)
 	suite.True(finished)
+	suite.Require().NoError(collection.Create(test.SimpleItem1))
+	err = collection.Create(test.SimplyInvalid)
+	suite.Require().Error(err)
+	suite.Assert().True(IsValidationFailure(err))
 }
 
 func (suite *collectionTestSuite) TestCollectionValidatorFinisherError() {
@@ -80,7 +88,7 @@ func (suite *collectionTestSuite) TestCreateDuplicate() {
 }
 
 func (suite *collectionTestSuite) TestFindNone() {
-	item, err := suite.collection.Find(test.SimpleKeyOfTheBeast.Filter())
+	item, err := suite.collection.Find(test.SimplyInvalid.Filter())
 	suite.Require().Error(err)
 	suite.True(IsNotFound(err))
 	suite.Nil(item)
@@ -126,11 +134,11 @@ func (suite *collectionTestSuite) TestCountDeleteAll() {
 	suite.Require().NoError(suite.collection.Create(test.SimpleItem1))
 	suite.Require().NoError(suite.collection.Create(test.SimpleItem2))
 	suite.Require().NoError(suite.collection.Create(test.SimpleItem3))
-	count, err := suite.collection.Count(bson.D{})
+	count, err := suite.collection.Count(NoFilter())
 	suite.NoError(err)
 	suite.Equal(int64(3), count)
 	suite.NoError(suite.collection.DeleteAll())
-	count, err = suite.collection.Count(bson.D{})
+	count, err = suite.collection.Count(NoFilter())
 	suite.NoError(err)
 	suite.Equal(int64(0), count)
 }

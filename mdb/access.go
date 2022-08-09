@@ -230,6 +230,8 @@ func fixConfig(config *Config) *Config {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+var errMissingCollectionName = errors.New("no collection name argument")
+
 // CollectionExists checks to see if a specific collection already exists.
 func (a *Access) CollectionExists(name string) (bool, error) {
 	if name == "" {
@@ -254,9 +256,16 @@ func (a *Access) CollectionExists(name string) (bool, error) {
 	return exists, nil
 }
 
+// CollectionFinisher provides a way to add special processing when creating a collection.
+type CollectionFinisher func(access *Access, collection *Collection) error
+
 // Collection acquires the named collection, creating it if necessary.
 func (a *Access) Collection(
 	ctx context.Context, collectionName string, validatorJSON string, finishers ...CollectionFinisher) (*Collection, error) {
+	if collectionName == "" {
+		return nil, errMissingCollectionName
+	}
+
 	if exists, err := a.CollectionExists(collectionName); err != nil {
 		return nil, fmt.Errorf("does collection '%s' exist: %w", collectionName, err)
 	} else if exists {
@@ -305,8 +314,9 @@ func (a *Access) Collection(
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// Functions to check for specific, known errors.
 
-// IsDuplicate checks to see if the specified error is for a duplicate something.
+// IsDuplicate checks to see if the specified error is for attempting to create a duplicate document.
 func IsDuplicate(err error) bool {
 	if err == nil {
 		return false

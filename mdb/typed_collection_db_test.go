@@ -53,7 +53,7 @@ func (suite *typedTestSuite) TestCreateDuplicate() {
 }
 
 func (suite *typedTestSuite) TestFindNone() {
-	item, err := suite.typed.Find(test.SimpleKeyOfTheBeast.Filter())
+	item, err := suite.typed.Find(test.SimplyInvalid.Filter())
 	suite.Require().Error(err)
 	suite.True(IsNotFound(err))
 	suite.Nil(item)
@@ -100,11 +100,11 @@ func (suite *typedTestSuite) TestCountDeleteAll() {
 	suite.Require().NoError(suite.typed.Create(test.SimpleItem1))
 	suite.Require().NoError(suite.typed.Create(test.SimpleItem2))
 	suite.Require().NoError(suite.typed.Create(test.SimpleItem3))
-	count, err := suite.typed.Count(bson.D{})
+	count, err := suite.typed.Count(NoFilter())
 	suite.NoError(err)
 	suite.Equal(int64(3), count)
 	suite.NoError(suite.typed.DeleteAll())
-	count, err = suite.typed.Count(bson.D{})
+	count, err = suite.typed.Count(NoFilter())
 	suite.NoError(err)
 	suite.Equal(int64(0), count)
 }

@@ -53,7 +53,7 @@ func (suite *cacheTestSuite) TestCreateDuplicate() {
 }
 
 func (suite *cacheTestSuite) TestFindNone() {
-	item, err := suite.cached.Find(test.SimpleKeyOfTheBeast)
+	item, err := suite.cached.Find(test.SimplyInvalid)
 	suite.Require().Error(err)
 	suite.True(IsNotFound(err))
 	suite.Nil(item)
@@ -104,11 +104,11 @@ func (suite *cacheTestSuite) TestCountDeleteAll() {
 	suite.Require().NoError(suite.cached.Create(test.SimpleItem1))
 	suite.Require().NoError(suite.cached.Create(test.SimpleItem2))
 	suite.Require().NoError(suite.cached.Create(test.SimpleItem3))
-	count, err := suite.cached.Count(bson.D{})
+	count, err := suite.cached.Count(NoFilter())
 	suite.NoError(err)
 	suite.Equal(int64(3), count)
 	suite.NoError(suite.cached.DeleteAll())
-	count, err = suite.cached.Count(bson.D{})
+	count, err = suite.cached.Count(NoFilter())
 	suite.NoError(err)
 	suite.Equal(int64(0), count)
 }
