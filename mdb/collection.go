@@ -9,9 +9,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// CollectionFinisher provides a way to add special processing when creating a collection.
-type CollectionFinisher func(access *Access, collection *Collection) error
-
 type Collection struct {
 	*Access
 	*mongo.Collection
@@ -53,7 +50,7 @@ func (c *Collection) Delete(filter bson.D, idempotent bool) error {
 
 // DeleteAll items from this collection.
 func (c *Collection) DeleteAll() error {
-	_, err := c.DeleteMany(c.ctx, bson.D{})
+	_, err := c.DeleteMany(c.ctx, NoFilter)
 	if err != nil {
 		return fmt.Errorf("delete all: %w", err)
 	}
@@ -121,7 +118,7 @@ var errNotString = errors.New("value not a string")
 // StringValuesFor returns an array of distinct string values for the specified filter and field.
 func (c *Collection) StringValuesFor(field string, filter bson.D) ([]string, error) {
 	if filter == nil {
-		filter = bson.D{}
+		filter = NoFilter()
 	}
 	values, err := c.Distinct(c.Context(), field, filter)
 	if err != nil {

@@ -256,6 +256,9 @@ func (a *Access) CollectionExists(name string) (bool, error) {
 	return exists, nil
 }
 
+// CollectionFinisher provides a way to add special processing when creating a collection.
+type CollectionFinisher func(access *Access, collection *Collection) error
+
 // Collection acquires the named collection, creating it if necessary.
 func (a *Access) Collection(
 	ctx context.Context, collectionName string, validatorJSON string, finishers ...CollectionFinisher) (*Collection, error) {

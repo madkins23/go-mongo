@@ -134,11 +134,11 @@ func (suite *collectionTestSuite) TestCountDeleteAll() {
 	suite.Require().NoError(suite.collection.Create(test.SimpleItem1))
 	suite.Require().NoError(suite.collection.Create(test.SimpleItem2))
 	suite.Require().NoError(suite.collection.Create(test.SimpleItem3))
-	count, err := suite.collection.Count(bson.D{})
+	count, err := suite.collection.Count(NoFilter())
 	suite.NoError(err)
 	suite.Equal(int64(3), count)
 	suite.NoError(suite.collection.DeleteAll())
-	count, err = suite.collection.Count(bson.D{})
+	count, err = suite.collection.Count(NoFilter())
 	suite.NoError(err)
 	suite.Equal(int64(0), count)
 }
