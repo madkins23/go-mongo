@@ -53,7 +53,7 @@ func (suite *typedTestSuite) TestCreateDuplicate() {
 }
 
 func (suite *typedTestSuite) TestFindNone() {
-	item, err := suite.typed.Find(test.SimpleKeyOfTheBeast.Filter())
+	item, err := suite.typed.Find(test.SimplyInvalid.Filter())
 	suite.Require().Error(err)
 	suite.True(IsNotFound(err))
 	suite.Nil(item)

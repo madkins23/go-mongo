@@ -53,7 +53,7 @@ func (suite *cacheTestSuite) TestCreateDuplicate() {
 }
 
 func (suite *cacheTestSuite) TestFindNone() {
-	item, err := suite.cached.Find(test.SimpleKeyOfTheBeast)
+	item, err := suite.cached.Find(test.SimplyInvalid)
 	suite.Require().Error(err)
 	suite.True(IsNotFound(err))
 	suite.Nil(item)
