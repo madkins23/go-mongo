@@ -306,7 +306,7 @@ func (a *Access) Collection(
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// IsDuplicate checks to see if the specified error is for a duplicate something.
+// IsDuplicate checks to see if the specified error is for attempting to create a duplicate document.
 func IsDuplicate(err error) bool {
 	if err == nil {
 		return false
