@@ -314,6 +314,7 @@ func (a *Access) Collection(
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// Functions to check for specific, known errors.
 
 // IsDuplicate checks to see if the specified error is for attempting to create a duplicate document.
 func IsDuplicate(err error) bool {

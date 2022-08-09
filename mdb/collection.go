@@ -50,7 +50,7 @@ func (c *Collection) Delete(filter bson.D, idempotent bool) error {
 
 // DeleteAll items from this collection.
 func (c *Collection) DeleteAll() error {
-	_, err := c.DeleteMany(c.ctx, NoFilter)
+	_, err := c.DeleteMany(c.ctx, NoFilter())
 	if err != nil {
 		return fmt.Errorf("delete all: %w", err)
 	}
