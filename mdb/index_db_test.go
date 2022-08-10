@@ -61,14 +61,14 @@ func (suite *indexTestSuite) TestIndexThree() {
 
 func (suite *indexTestSuite) TestIndexFinisher() {
 	index := NewIndexDescription(true, "alpha", "bravo")
-	definition := &CollectionDefinition{
-		name:           "test-collection-index-finisher",
-		validationJSON: test.SimpleValidatorJSON,
-		finishers: []CollectionFinisher{
-			index.Finisher(),
-		},
-	}
-	collection, err := ConnectCollection(suite.access, definition)
+	collection, err := ConnectCollection(suite.access,
+		&CollectionDefinition{
+			name:           "test-collection-index-finisher",
+			validationJSON: test.SimpleValidatorJSON,
+			finishers: []CollectionFinisher{
+				index.Finisher(),
+			},
+		})
 	suite.Require().NoError(err)
 	suite.NotNil(collection)
 	NewIndexTester().TestIndexes(suite.T(), collection, index)
