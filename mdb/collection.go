@@ -15,6 +15,19 @@ type Collection struct {
 	ctx context.Context
 }
 
+// ConnectCollection creates a new collection object with the specified collection definition.
+func ConnectCollection(access *Access, definition *CollectionDefinition) (*Collection, error) {
+	collection := &Collection{}
+	if err := access.CollectionConnect(collection, definition); err != nil {
+		return nil, fmt.Errorf("connecting collection: %w", err)
+	}
+	return collection, nil
+}
+
+func (c *Collection) ContextWithTimeout() (context.Context, context.CancelFunc) {
+	return c.Access.ContextWithTimeout(c.Access.config.Collection)
+}
+
 // Count documents in collection matching filter.
 func (c *Collection) Count(filter bson.D) (int64, error) {
 	if count, err := c.Collection.CountDocuments(context.TODO(), filter); err != nil {
@@ -55,6 +68,13 @@ func (c *Collection) DeleteAll() error {
 		return fmt.Errorf("delete all: %w", err)
 	}
 	return nil
+}
+
+// Drop collection.
+func (c *Collection) Drop() error {
+	ctx, cancelFn := c.ContextWithTimeout()
+	defer cancelFn()
+	return c.Collection.Drop(ctx)
 }
 
 // Find an item in the database and return it as a blank interface.

@@ -4,7 +4,6 @@
 package mdb
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -23,13 +22,13 @@ func TestIndexSuite(t *testing.T) {
 
 func (suite *indexTestSuite) SetupTest() {
 	var err error
-	suite.collection, err = suite.access.Collection(context.TODO(), "test-index-collection", test.SimpleValidatorJSON)
+	suite.collection, err = ConnectCollection(suite.access, testCollectionValidation)
 	suite.Require().NoError(err)
 	suite.NotNil(suite.collection)
 }
 
 func (suite *indexTestSuite) TearDownTest() {
-	_ = suite.collection.Drop(context.TODO())
+	_ = suite.collection.Drop()
 }
 
 func (suite *indexTestSuite) TestIndexNone() {
@@ -62,8 +61,14 @@ func (suite *indexTestSuite) TestIndexThree() {
 
 func (suite *indexTestSuite) TestIndexFinisher() {
 	index := NewIndexDescription(true, "alpha", "bravo")
-	collection, err := suite.access.Collection(context.TODO(), "test-index-finisher-collection",
-		test.SimpleValidatorJSON, index.Finisher())
+	definition := &CollectionDefinition{
+		name:           "test-collection-index-finisher",
+		validationJSON: test.SimpleValidatorJSON,
+		finishers: []CollectionFinisher{
+			index.Finisher(),
+		},
+	}
+	collection, err := ConnectCollection(suite.access, definition)
 	suite.Require().NoError(err)
 	suite.NotNil(collection)
 	NewIndexTester().TestIndexes(suite.T(), collection, index)

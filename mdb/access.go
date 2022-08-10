@@ -238,79 +238,104 @@ func (a *Access) CollectionExists(name string) (bool, error) {
 		return false, errMissingCollectionName
 	}
 
+	// Can't just ask for a collection and get back a nil if it doesn't exist.
+	// Mongo is happy to define the connection object regardless of previous existence.
+
+	// Check though a list of collection names for the database.
 	ctx, cancel := a.ContextWithTimeout(a.config.Timeout.Collection)
 	defer cancel()
 	names, err := a.database.ListCollectionNames(ctx, bson.M{"name": name})
 	if err != nil {
 		return false, fmt.Errorf("getting collection names: %w", err)
 	}
-
-	exists := false
 	for _, collName := range names {
 		if collName == name {
-			exists = true
-			break
+			return true, nil
 		}
 	}
 
-	return exists, nil
+	return false, nil
+}
+
+// CollectionDefinition contains the definitions necessary for a Collection.
+type CollectionDefinition struct {
+	// Name of collection.
+	name string
+
+	// Options used if collection already exists.
+	connectOptions []*options.CollectionOptions
+
+	// Options used to create collection.
+	createOptions []*options.CreateCollectionOptions
+
+	// Convenience field to specify validation data as JSON
+	// which will be decoded and added to createOptions.
+	validationJSON string
+
+	// Collection finishers are run after creation of a collection.
+	// Finishers support mechanism such as index creation.
+	finishers []CollectionFinisher
 }
 
 // CollectionFinisher provides a way to add special processing when creating a collection.
 type CollectionFinisher func(access *Access, collection *Collection) error
 
-// Collection acquires the named collection, creating it if necessary.
-func (a *Access) Collection(
-	ctx context.Context, collectionName string, validatorJSON string, finishers ...CollectionFinisher) (*Collection, error) {
-	if collectionName == "" {
-		return nil, errMissingCollectionName
+var errNoCollectionDefinition = errors.New("no collection definition")
+var errNoCollectionStruct = errors.New("no collection struct")
+
+// CollectionConnect configures a Collection object per the collection definition.
+// If the collection does not exist it will be created for use.
+func (a *Access) CollectionConnect(collection *Collection, definition *CollectionDefinition) error {
+	if collection == nil {
+		return errNoCollectionStruct
+	}
+	if definition == nil {
+		return errNoCollectionDefinition
 	}
 
-	if exists, err := a.CollectionExists(collectionName); err != nil {
-		return nil, fmt.Errorf("does collection '%s' exist: %w", collectionName, err)
-	} else if exists {
-		// Collection already exists, just return it.
-		return &Collection{Access: a, Collection: a.database.Collection(collectionName)}, nil
+	collection.Access = a
+	collection.ctx = a.Context()
+	connectCtx, cancelFn := collection.ContextWithTimeout()
+	defer cancelFn()
+
+	var exists bool
+	var err error
+	if exists, err = a.CollectionExists(definition.name); err != nil {
+		return fmt.Errorf("check collection '%s' existence: %w", definition.name, err)
 	}
 
-	// Add option for validator JSON if it is provided.
-	opts := make([]*options.CreateCollectionOptions, 0)
-	if validatorJSON != "" {
-		var validator interface{}
-		if err := bson.UnmarshalExtJSON([]byte(validatorJSON), false, &validator); err != nil {
-			return nil, fmt.Errorf("unmarshal validator for collection: %w", err)
+	if !exists &&
+		// If there are no create options or validation JSON simple connection in the next step is OK.
+		(len(definition.createOptions) > 0 || definition.validationJSON != "") {
+		// Pre-create the collection to use the specified creation options and/or validation JSON.
+		opts := definition.createOptions
+		if definition.validationJSON != "" {
+			var validator interface{}
+			if err = bson.UnmarshalExtJSON([]byte(definition.validationJSON), false, &validator); err != nil {
+				return fmt.Errorf("unmarshal validator for collection: %w", err)
+			}
+			opts = append(opts, &options.CreateCollectionOptions{Validator: validator})
 		}
-		opts = append(opts, &options.CreateCollectionOptions{Validator: validator})
-	}
-
-	// Create collection.
-
-	createCtx, cancel := a.ContextWithTimeout(a.config.Timeout.Collection)
-	defer cancel()
-	err := a.database.CreateCollection(createCtx, collectionName, opts...)
-	if err != nil {
-		if cmdErr, ok := err.(mongo.CommandError); !ok || !cmdErr.HasErrorLabel("NamespaceExists") {
-			return nil, fmt.Errorf("create collection: %w", err)
-		}
-	}
-	if ctx == nil {
-		ctx = a.Context()
-	}
-	collection := &Collection{
-		Access:     a,
-		Collection: a.database.Collection(collectionName),
-		ctx:        ctx,
-	}
-	a.Info("Created collection " + collection.Name())
-
-	// Run finishers on the collection.
-	for i, finisher := range finishers {
-		if err = finisher(a, collection); err != nil {
-			return nil, fmt.Errorf("collection finisher #%d: %w", i, err)
+		if err = a.database.CreateCollection(connectCtx, definition.name, opts...); err != nil {
+			return fmt.Errorf("creating collection '%s': %w", definition.name, err)
 		}
 	}
 
-	return collection, nil
+	// Collection should now exist so just connect to it.
+	collection.Collection = a.database.Collection(definition.name, definition.connectOptions...)
+
+	if !exists {
+		for i, finisher := range definition.finishers {
+			if err = finisher(a, collection); err != nil {
+				// Since the finishers are only run for previously non-existent collections,
+				// it is appropriate to drop the collection if any of them fail.
+				_ = collection.Drop()
+				return fmt.Errorf("collection finisher #%d: %w", i, err)
+			}
+		}
+	}
+
+	return nil
 }
 
 ////////////////////////////////////////////////////////////////////////////////

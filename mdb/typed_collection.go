@@ -11,10 +11,13 @@ type TypedCollection[T any] struct {
 	Collection
 }
 
-func NewTypedCollection[T any](collection *Collection) *TypedCollection[T] {
-	return &TypedCollection[T]{
-		Collection: *collection,
+// ConnectTypedCollection creates a new typed collection object with the specified collection definition.
+func ConnectTypedCollection[T any](access *Access, definition *CollectionDefinition) (*TypedCollection[T], error) {
+	collection := &TypedCollection[T]{}
+	if err := access.CollectionConnect(&collection.Collection, definition); err != nil {
+		return nil, fmt.Errorf("connecting typed collection: %w", err)
 	}
+	return collection, nil
 }
 
 // Find an item in the database.

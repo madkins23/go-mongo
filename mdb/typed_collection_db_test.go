@@ -3,7 +3,6 @@
 package mdb
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
@@ -28,13 +27,12 @@ func (suite *typedTestSuite) SetupSuite() {
 	reg.Highlander().Clear()
 	suite.Require().NoError(test.Register())
 	suite.Require().NoError(test.RegisterWrapped())
-	collection, err := suite.access.Collection(context.TODO(), "test-collection", test.SimpleValidatorJSON)
+	var err error
+	suite.typed, err = ConnectTypedCollection[test.SimpleItem](suite.access, testCollectionValidation)
 	suite.Require().NoError(err)
-	suite.NotNil(collection)
-	suite.Require().NoError(suite.access.Index(collection, NewIndexDescription(true, "alpha")))
-	suite.typed = NewTypedCollection[test.SimpleItem](collection)
+	suite.NotNil(suite.typed)
 	suite.Require().NoError(suite.typed.DeleteAll())
-	suite.Require().NotNil(suite.typed)
+	suite.Require().NoError(suite.access.Index(&suite.typed.Collection, NewIndexDescription(true, "alpha")))
 }
 
 func (suite *typedTestSuite) TearDownTest() {
@@ -142,9 +140,8 @@ func (suite *typedTestSuite) TestIterateFiltered() {
 }
 
 func (suite *typedTestSuite) TestStringValuesFor() {
-	collection, err := suite.access.Collection(context.TODO(), "mdb-typed-collection-string-values", "")
+	typed, err := ConnectTypedCollection[test.SimpleItem](suite.access, testCollectionStringValues)
 	suite.Require().NoError(err)
-	typed := NewTypedCollection[test.SimpleItem](collection)
 	suite.NotNil(typed)
 	for i := 0; i < 5; i++ {
 		suite.Require().NoError(typed.Create(&test.SimpleItem{
@@ -169,9 +166,8 @@ func (suite *typedTestSuite) TestStringValuesFor() {
 ////////////////////////////////////////////////////////////////////////////////
 
 func (suite *typedTestSuite) TestCreateFindDeleteWrapped() {
-	collection, err := suite.access.Collection(context.TODO(), "mdb-cached-collection-wrapped-items", "")
+	wrapped, err := ConnectTypedCollection[WrappedItems](suite.access, testCollectionWrapped)
 	suite.Require().NoError(err)
-	wrapped := NewTypedCollection[WrappedItems](collection)
 	suite.Require().NotNil(wrapped)
 	suite.Require().NoError(wrapped.DeleteAll())
 	wrappedItems := MakeWrappedItems()

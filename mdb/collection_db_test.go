@@ -4,7 +4,6 @@
 package mdb
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -25,9 +24,9 @@ func TestCollectionSuite(t *testing.T) {
 }
 
 func (suite *collectionTestSuite) SetupSuite() {
-	var err error
 	suite.AccessTestSuite.SetupSuite()
-	suite.collection, err = suite.access.Collection(context.TODO(), "test-collection", test.SimpleValidatorJSON)
+	var err error
+	suite.collection, err = ConnectCollection(suite.access, testCollection)
 	suite.Require().NoError(err)
 	suite.NotNil(suite.collection)
 	suite.Require().NoError(suite.collection.DeleteAll())
@@ -39,7 +38,7 @@ func (suite *collectionTestSuite) TearDownTest() {
 }
 
 func (suite *collectionTestSuite) TestCollectionValidator() {
-	collection, err := suite.access.Collection(context.TODO(), "test-collection-validator", test.SimpleValidatorJSON)
+	collection, err := ConnectCollection(suite.access, testCollectionValidation)
 	suite.Require().NoError(err)
 	suite.NotNil(collection)
 	suite.Require().NoError(collection.Create(test.SimpleItem1))
@@ -49,31 +48,42 @@ func (suite *collectionTestSuite) TestCollectionValidator() {
 }
 
 func (suite *collectionTestSuite) TestCollectionValidatorFinisher() {
+	name := "test-collection-validation-finisher"
 	var finished bool
-	collection, err := suite.access.Collection(
-		context.TODO(), "test-collection-validator-finisher", test.SimpleValidatorJSON,
-		func(access *Access, collection *Collection) error {
-			access.Info("Running finisher")
-			finished = true
-			return nil
-		})
+	definition := &CollectionDefinition{
+		name:           name,
+		validationJSON: test.SimpleValidatorJSON,
+		finishers: []CollectionFinisher{
+			func(access *Access, collection *Collection) error {
+				access.Info("Running finisher")
+				finished = true
+				return nil
+			},
+		},
+	}
+	collection, err := ConnectCollection(suite.access, definition)
 	suite.Require().NoError(err)
 	suite.NotNil(collection)
 	suite.True(finished)
-	suite.Require().NoError(collection.Create(test.SimpleItem1))
-	err = collection.Create(test.SimplyInvalid)
-	suite.Require().Error(err)
-	suite.Assert().True(IsValidationFailure(err))
+	suite.True(suite.Access().CollectionExists(name))
+	suite.Require().NoError(collection.Drop())
 }
 
 func (suite *collectionTestSuite) TestCollectionValidatorFinisherError() {
-	collection, err := suite.access.Collection(
-		context.TODO(), "test-collection-validator-finisher-error", test.SimpleValidatorJSON,
-		func(access *Access, collection *Collection) error {
-			return errors.New("fail")
-		})
+	name := "test-collection-validation-finisher-error"
+	collection, err := ConnectCollection(suite.access, &CollectionDefinition{
+		name:           "test-collection-validation-finisher-error",
+		validationJSON: test.SimpleValidatorJSON,
+		finishers: []CollectionFinisher{
+			func(access *Access, collection *Collection) error {
+				return errors.New("fail")
+			},
+		},
+	})
 	suite.Error(err)
 	suite.Nil(collection)
+	// Make sure the collection was dropped.
+	suite.False(suite.Access().CollectionExists(name))
 }
 
 func (suite *collectionTestSuite) TestCreateDuplicate() {
@@ -186,7 +196,7 @@ func (suite *collectionTestSuite) TestIterateFiltered() {
 }
 
 func (suite *collectionTestSuite) TestStringValuesFor() {
-	collection, err := suite.access.Collection(context.TODO(), "mdb-collection-string-values", "")
+	collection, err := ConnectCollection(suite.access, testCollectionStringValues)
 	suite.Require().NoError(err)
 	suite.NotNil(collection)
 	for i := 0; i < 5; i++ {

@@ -19,14 +19,17 @@ type CachedCollection[C Cacheable] struct {
 	expireAfter time.Duration
 }
 
-func NewCachedCollection[C Cacheable](collection *Collection, expireAfter time.Duration) *CachedCollection[C] {
-	return &CachedCollection[C]{
-		TypedCollection: TypedCollection[C]{
-			Collection: *collection,
-		},
+// ConnectCachedCollection creates a new cached collection object with the specified collection definition.
+func ConnectCachedCollection[C Cacheable](
+	access *Access, definition *CollectionDefinition, expireAfter time.Duration) (*CachedCollection[C], error) {
+	collection := &CachedCollection[C]{
 		cache:       make(map[string]C),
 		expireAfter: expireAfter,
 	}
+	if err := access.CollectionConnect(&collection.Collection, definition); err != nil {
+		return nil, fmt.Errorf("connecting cached collection: %w", err)
+	}
+	return collection, nil
 }
 
 // Cacheable must be searchable and loadable.

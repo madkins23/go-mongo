@@ -3,7 +3,6 @@
 package mdb
 
 import (
-	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -29,12 +28,12 @@ func (suite *cacheTestSuite) SetupSuite() {
 	reg.Highlander().Clear()
 	suite.Require().NoError(test.Register())
 	suite.Require().NoError(test.RegisterWrapped())
-	collection, err := suite.access.Collection(context.TODO(), "test-cache-collection", test.SimpleValidatorJSON)
+	var err error
+	suite.cached, err = ConnectCachedCollection[*test.SimpleItem](suite.access, testCollectionValidation, time.Hour)
 	suite.Require().NoError(err)
-	suite.NotNil(collection)
-	suite.Require().NoError(suite.access.Index(collection, NewIndexDescription(true, "alpha")))
-	suite.cached = NewCachedCollection[*test.SimpleItem](collection, time.Hour)
+	suite.NotNil(suite.cached)
 	suite.Require().NoError(suite.cached.DeleteAll())
+	suite.Require().NoError(suite.access.Index(&suite.cached.Collection, NewIndexDescription(true, "alpha")))
 }
 
 func (suite *cacheTestSuite) TearDownTest() {
@@ -146,9 +145,7 @@ func (suite *cacheTestSuite) TestIterateFiltered() {
 }
 
 func (suite *cacheTestSuite) TestStringValuesFor() {
-	collection, err := suite.access.Collection(context.TODO(), "mdb-cached-collection-string-values", "")
-	suite.Require().NoError(err)
-	cached := NewCachedCollection[*test.SimpleItem](collection, time.Hour)
+	cached, err := ConnectCachedCollection[*test.SimpleItem](suite.access, testCollectionStringValues, time.Hour)
 	suite.NotNil(cached)
 	for i := 0; i < 5; i++ {
 		suite.Require().NoError(cached.Create(&test.SimpleItem{
@@ -173,9 +170,8 @@ func (suite *cacheTestSuite) TestStringValuesFor() {
 ////////////////////////////////////////////////////////////////////////////////
 
 func (suite *cacheTestSuite) TestCreateFindDeleteWrapped() {
-	collection, err := suite.access.Collection(context.TODO(), "mdb-cached-collection-wrapped-items", "")
+	wrapped, err := ConnectCachedCollection[*WrappedItems](suite.access, testCollectionWrapped, time.Hour)
 	suite.Require().NoError(err)
-	wrapped := NewCachedCollection[*WrappedItems](collection, time.Hour)
 	suite.Require().NotNil(wrapped)
 	suite.Require().NoError(wrapped.DeleteAll())
 	wrappedItems := MakeWrappedItems()
