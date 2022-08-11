@@ -7,6 +7,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type Collection struct {
@@ -155,6 +156,23 @@ func (c *Collection) StringValuesFor(field string, filter bson.D) ([]string, err
 	}
 
 	return result, nil
+}
+
+var errNoItemMatch = errors.New("no matching item")
+var errNoItemModified = errors.New("no modified item")
+
+// Replace entire item referenced by filter with specified item.
+func (c *Collection) Replace(filter, item interface{}, opts ...*options.UpdateOptions) error {
+	result, err := c.UpdateOne(c.Context(), filter, bson.M{"$set": item}, opts...)
+	if err != nil {
+		return fmt.Errorf("replace item: %w", err)
+	} else if result.MatchedCount < 1 && result.UpsertedCount < 1 {
+		return errNoItemMatch
+	} else if result.ModifiedCount < 1 && result.UpsertedCount < 1 {
+		return errNoItemModified
+	} else {
+		return nil
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////

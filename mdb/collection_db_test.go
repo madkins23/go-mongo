@@ -44,7 +44,7 @@ func (suite *collectionTestSuite) TestCollectionValidator() {
 	suite.Require().NoError(collection.Create(test.SimpleItem1))
 	err = collection.Create(test.SimplyInvalid)
 	suite.Require().Error(err)
-	suite.Assert().True(IsValidationFailure(err))
+	suite.True(IsValidationFailure(err))
 }
 
 func (suite *collectionTestSuite) TestCollectionValidatorFinisher() {
@@ -193,6 +193,45 @@ func (suite *collectionTestSuite) TestIterateFiltered() {
 		}))
 	suite.Equal(1, count)
 	suite.Equal([]string{"one"}, alpha)
+}
+
+func (suite *collectionTestSuite) TestReplace() {
+	suite.Require().NoError(suite.collection.Create(test.SimpleItem1))
+	item, err := suite.collection.Find(test.SimpleItem1.Filter())
+	suite.Require().NoError(err)
+	suite.checkField(item, "alpha", "one")
+	suite.Require().NoError(err)
+	// Replace with new value:
+	suite.Require().NoError(suite.collection.Replace(test.SimpleItem1.Filter(), test.SimpleItem1x))
+	_, err = suite.collection.Find(test.SimpleItem1.Filter())     // look for old item
+	suite.True(IsNotFound(err))                                   // gone
+	item, err = suite.collection.Find(test.SimpleItem1x.Filter()) // look for new item
+	suite.Require().NoError(err)                                  // found
+	suite.checkField(item, "alpha", "xRay")
+	// Replace with same value:
+	err = suite.collection.Replace(test.SimpleItem1x.Filter(), test.SimpleItem1x)
+	suite.Require().ErrorIs(err, errNoItemModified)
+	item, err = suite.collection.Find(test.SimpleItem1x.Filter())
+	suite.Require().NoError(err)
+	suite.checkField(item, "alpha", "xRay")
+	// No match for filter:
+	item, err = suite.collection.Find(test.SimpleItem3.Filter())
+	suite.True(IsNotFound(err))
+	suite.ErrorIs(suite.collection.Replace(test.SimpleItem3.Filter(), test.SimpleItem3), errNoItemMatch)
+	// Upsert new item:
+	suite.NoError(suite.collection.Replace(NoFilter(), test.SimpleItem3))
+	item, err = suite.collection.Find(test.SimpleItem3.Filter())
+	suite.Require().NoError(err)
+	suite.checkField(item, "alpha", "three")
+}
+
+func (suite *collectionTestSuite) checkField(item interface{}, field, value string) {
+	suite.Require().NotNil(item)
+	itemD, ok := item.(bson.D)
+	suite.Require().True(ok)
+	alpha, found := itemD.Map()[field]
+	suite.Require().True(found)
+	suite.Equal(alpha, value)
 }
 
 func (suite *collectionTestSuite) TestStringValuesFor() {

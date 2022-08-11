@@ -80,6 +80,13 @@ var (
 		},
 		Charlie: "One is the loneliest number",
 	}
+	SimpleItem1x = &SimpleItem{
+		SimpleKey: SimpleKey{
+			Alpha: "xRay",
+			Bravo: 23,
+		},
+		Charlie: "Do not envy the man with the x-ray eyes",
+	}
 	SimpleItem2 = &SimpleItem{
 		SimpleKey: SimpleKey{
 			Alpha: "two",
