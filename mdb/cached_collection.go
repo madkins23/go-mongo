@@ -166,7 +166,9 @@ func (c *CachedCollection[T]) Iterate(filter bson.D, fn func(item T) error) erro
 }
 
 // Replace entire item referenced by filter with specified item.
-func (c *CachedCollection[T]) Replace(filter Cacheable, item T, opts ...*options.UpdateOptions) error {
+// Unlike Collection and TypedCollection Replace methods
+// the filter here must be a typed item in order to properly clear the cache entry.
+func (c *CachedCollection[T]) Replace(filter, item T, opts ...*options.UpdateOptions) error {
 	err := c.Collection.Replace(filter.Filter(), item, opts...)
 	if err != nil {
 		return fmt.Errorf("basic replace: %w", err)
