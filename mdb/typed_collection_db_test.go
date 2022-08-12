@@ -139,6 +139,36 @@ func (suite *typedTestSuite) TestIterateFiltered() {
 	suite.Equal([]string{"two"}, alpha)
 }
 
+func (suite *typedTestSuite) TestReplace() {
+	suite.Require().NoError(suite.typed.Create(test.SimpleItem1))
+	item, err := suite.typed.Find(test.SimpleItem1.Filter())
+	suite.Require().NoError(err)
+	suite.Equal("one", item.Alpha)
+	suite.Require().NoError(err)
+	// Replace with new value:
+	suite.Require().NoError(suite.typed.Replace(test.SimpleItem1.Filter(), test.SimpleItem1x))
+	_, err = suite.typed.Find(test.SimpleItem1.Filter())     // look for old item
+	suite.True(IsNotFound(err))                              // gone
+	item, err = suite.typed.Find(test.SimpleItem1x.Filter()) // look for new item
+	suite.Require().NoError(err)                             // found
+	suite.Equal("xRay", item.Alpha)
+	// Replace with same value:
+	err = suite.typed.Replace(test.SimpleItem1x.Filter(), test.SimpleItem1x)
+	suite.Require().ErrorIs(err, errNoItemModified)
+	item, err = suite.typed.Find(test.SimpleItem1x.Filter())
+	suite.Require().NoError(err)
+	suite.Equal("xRay", item.Alpha)
+	// No match for filter:
+	item, err = suite.typed.Find(test.SimpleItem3.Filter())
+	suite.True(IsNotFound(err))
+	suite.ErrorIs(suite.typed.Replace(test.SimpleItem3.Filter(), test.SimpleItem3), errNoItemMatch)
+	// Upsert new item:
+	suite.NoError(suite.typed.Replace(NoFilter(), test.SimpleItem3))
+	item, err = suite.typed.Find(test.SimpleItem3.Filter())
+	suite.Require().NoError(err)
+	suite.Equal("three", item.Alpha)
+}
+
 func (suite *typedTestSuite) TestStringValuesFor() {
 	typed, err := ConnectTypedCollection[test.SimpleItem](suite.access, testCollectionStringValues)
 	suite.Require().NoError(err)

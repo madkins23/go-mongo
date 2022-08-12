@@ -199,7 +199,7 @@ func (suite *collectionTestSuite) TestReplace() {
 	suite.Require().NoError(suite.collection.Create(test.SimpleItem1))
 	item, err := suite.collection.Find(test.SimpleItem1.Filter())
 	suite.Require().NoError(err)
-	suite.checkField(item, "alpha", "one")
+	suite.checkBsonField(item, "alpha", "one")
 	suite.Require().NoError(err)
 	// Replace with new value:
 	suite.Require().NoError(suite.collection.Replace(test.SimpleItem1.Filter(), test.SimpleItem1x))
@@ -207,13 +207,13 @@ func (suite *collectionTestSuite) TestReplace() {
 	suite.True(IsNotFound(err))                                   // gone
 	item, err = suite.collection.Find(test.SimpleItem1x.Filter()) // look for new item
 	suite.Require().NoError(err)                                  // found
-	suite.checkField(item, "alpha", "xRay")
+	suite.checkBsonField(item, "alpha", "xRay")
 	// Replace with same value:
 	err = suite.collection.Replace(test.SimpleItem1x.Filter(), test.SimpleItem1x)
 	suite.Require().ErrorIs(err, errNoItemModified)
 	item, err = suite.collection.Find(test.SimpleItem1x.Filter())
 	suite.Require().NoError(err)
-	suite.checkField(item, "alpha", "xRay")
+	suite.checkBsonField(item, "alpha", "xRay")
 	// No match for filter:
 	item, err = suite.collection.Find(test.SimpleItem3.Filter())
 	suite.True(IsNotFound(err))
@@ -222,16 +222,7 @@ func (suite *collectionTestSuite) TestReplace() {
 	suite.NoError(suite.collection.Replace(NoFilter(), test.SimpleItem3))
 	item, err = suite.collection.Find(test.SimpleItem3.Filter())
 	suite.Require().NoError(err)
-	suite.checkField(item, "alpha", "three")
-}
-
-func (suite *collectionTestSuite) checkField(item interface{}, field, value string) {
-	suite.Require().NotNil(item)
-	itemD, ok := item.(bson.D)
-	suite.Require().True(ok)
-	alpha, found := itemD.Map()[field]
-	suite.Require().True(found)
-	suite.Equal(alpha, value)
+	suite.checkBsonField(item, "alpha", "three")
 }
 
 func (suite *collectionTestSuite) TestStringValuesFor() {
@@ -257,4 +248,15 @@ func (suite *collectionTestSuite) TestStringValuesFor() {
 	values, err = collection.StringValuesFor("goober", nil)
 	suite.Require().NoError(err)
 	suite.Len(values, 0)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+func (suite *collectionTestSuite) checkBsonField(item interface{}, field, value string) {
+	suite.Require().NotNil(item)
+	itemD, ok := item.(bson.D)
+	suite.Require().True(ok)
+	alpha, found := itemD.Map()[field]
+	suite.Require().True(found)
+	suite.Equal(alpha, value)
 }

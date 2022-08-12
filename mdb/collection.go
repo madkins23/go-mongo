@@ -169,6 +169,7 @@ func (c *Collection) Replace(filter, item interface{}, opts ...*options.UpdateOp
 	} else if result.MatchedCount < 1 && result.UpsertedCount < 1 {
 		return errNoItemMatch
 	} else if result.ModifiedCount < 1 && result.UpsertedCount < 1 {
+		// Not sure how to test this,  may never happen.
 		return errNoItemModified
 	} else {
 		return nil
