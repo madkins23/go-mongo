@@ -7,6 +7,7 @@ import (
 
 	"github.com/madkins23/go-utils/check"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // CachedCollection caches Mongo-stored objects so that the same object is always returned.
@@ -161,5 +162,20 @@ func (c *CachedCollection[T]) Iterate(filter bson.D, fn func(item T) error) erro
 		}
 	}
 
+	return nil
+}
+
+// Replace entire item referenced by filter with specified item.
+func (c *CachedCollection[T]) Replace(filter Cacheable, item T, opts ...*options.UpdateOptions) error {
+	err := c.Collection.Replace(filter.Filter(), item, opts...)
+	if err != nil {
+		return fmt.Errorf("basic replace: %w", err)
+	}
+
+	filterKey := filter.CacheKey()
+	delete(c.cache, filterKey)
+	if itemKey := item.CacheKey(); filterKey != itemKey {
+		delete(c.cache, itemKey)
+	}
 	return nil
 }

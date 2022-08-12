@@ -144,6 +144,36 @@ func (suite *cacheTestSuite) TestIterateFiltered() {
 	suite.Equal([]string{"two"}, alpha)
 }
 
+func (suite *cacheTestSuite) TestReplace() {
+	suite.Require().NoError(suite.cached.Create(test.SimpleItem1))
+	item, err := suite.cached.Find(test.SimpleItem1)
+	suite.Require().NoError(err)
+	suite.Equal("one", item.Alpha)
+	suite.Require().NoError(err)
+	// Replace with new value:
+	suite.Require().NoError(suite.cached.Replace(test.SimpleItem1, test.SimpleItem1x))
+	_, err = suite.cached.Find(test.SimpleItem1)     // look for old item
+	suite.True(IsNotFound(err))                      // gone
+	item, err = suite.cached.Find(test.SimpleItem1x) // look for new item
+	suite.Require().NoError(err)                     // found
+	suite.Equal("xRay", item.Alpha)
+	// Replace with same value:
+	err = suite.cached.Replace(test.SimpleItem1x, test.SimpleItem1x)
+	suite.Require().ErrorIs(err, errNoItemModified)
+	item, err = suite.cached.Find(test.SimpleItem1x)
+	suite.Require().NoError(err)
+	suite.Equal("xRay", item.Alpha)
+	// No match for filter:
+	item, err = suite.cached.Find(test.SimpleItem3)
+	suite.True(IsNotFound(err))
+	suite.ErrorIs(suite.cached.Replace(test.SimpleItem3, test.SimpleItem3), errNoItemMatch)
+	// Upsert new item:
+	//suite.NoError(suite.cached.Replace(NoFilter(), test.SimpleItem3))
+	//item, err = suite.cached.Find(test.SimpleItem3)
+	//suite.Require().NoError(err)
+	//suite.Equal("three", item.Alpha)
+}
+
 func (suite *cacheTestSuite) TestStringValuesFor() {
 	cached, err := ConnectCachedCollection[*test.SimpleItem](suite.access, testCollectionStringValues, time.Hour)
 	suite.NotNil(cached)
