@@ -164,7 +164,13 @@ var errNoItemModified = errors.New("no modified item")
 // Replace entire item referenced by filter with specified item.
 // If the filter matches more than one document Mongo will choose one to update.
 func (c *Collection) Replace(filter, item interface{}, opts ...*options.UpdateOptions) error {
-	result, err := c.UpdateOne(c.Context(), filter, bson.M{"$set": item}, opts...)
+	return c.Update(filter, bson.M{"$set": item}, opts...)
+}
+
+// Update item referenced by filter by applying update operator expressions.
+// If the filter matches more than one document Mongo will choose one to update.
+func (c *Collection) Update(filter, operators interface{}, opts ...*options.UpdateOptions) error {
+	result, err := c.UpdateOne(c.Context(), filter, operators, opts...)
 	if err != nil {
 		return fmt.Errorf("replace item: %w", err)
 	} else if result.MatchedCount < 1 && result.UpsertedCount < 1 {

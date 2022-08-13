@@ -200,13 +200,13 @@ func (suite *collectionTestSuite) TestReplace() {
 	item, err := suite.collection.Find(test.SimpleItem1.Filter())
 	suite.Require().NoError(err)
 	suite.checkBsonField(item, "alpha", "one")
-	suite.Require().NoError(err)
 	// Replace with new value:
 	suite.Require().NoError(suite.collection.Replace(test.SimpleItem1.Filter(), test.SimpleItem1x))
 	_, err = suite.collection.Find(test.SimpleItem1.Filter())     // look for old item
 	suite.True(IsNotFound(err))                                   // gone
 	item, err = suite.collection.Find(test.SimpleItem1x.Filter()) // look for new item
 	suite.Require().NoError(err)                                  // found
+	suite.Require().NotNil(item)
 	suite.checkBsonField(item, "alpha", "xRay")
 	// Replace with same value:
 	err = suite.collection.Replace(test.SimpleItem1x.Filter(), test.SimpleItem1x)
@@ -223,6 +223,33 @@ func (suite *collectionTestSuite) TestReplace() {
 	item, err = suite.collection.Find(test.SimpleItem3.Filter())
 	suite.Require().NoError(err)
 	suite.checkBsonField(item, "alpha", "three")
+}
+
+func (suite *collectionTestSuite) TestUpdate() {
+	suite.Require().NoError(suite.collection.Create(test.SimpleItem1))
+	item, err := suite.collection.Find(test.SimpleItem1.Filter())
+	suite.Require().NoError(err)
+	suite.checkBsonField(item, "alpha", "one")
+	suite.checkBsonField(item, "charlie", test.SimpleCharlie1)
+	suite.checkBsonField(item, "delta", int32(1))
+	// Set charlie and delta fields:
+	suite.Require().NoError(
+		suite.collection.Update(test.SimpleItem1.Filter(), bson.M{
+			"$set": bson.M{"charlie": "One more time"},
+			"$inc": bson.M{"delta": 2},
+		}))
+	item, err = suite.collection.Find(test.SimpleItem1.Filter())
+	suite.Require().NoError(err)
+	suite.Require().NotNil(item)
+	suite.checkBsonField(item, "charlie", "One more time")
+	suite.checkBsonField(item, "delta", int32(3))
+	// No match for filter:
+	item, err = suite.collection.Find(test.SimpleItem3.Filter())
+	suite.True(IsNotFound(err))
+	suite.ErrorIs(suite.collection.Update(test.SimpleItem3.Filter(), bson.M{
+		"$set": bson.M{"charlie": "Horse"},
+		"$inc": bson.M{"delta": 7},
+	}), errNoItemMatch)
 }
 
 func (suite *collectionTestSuite) TestStringValuesFor() {
@@ -252,11 +279,11 @@ func (suite *collectionTestSuite) TestStringValuesFor() {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-func (suite *collectionTestSuite) checkBsonField(item interface{}, field, value string) {
+func (suite *collectionTestSuite) checkBsonField(item interface{}, field string, value interface{}) {
 	suite.Require().NotNil(item)
 	itemD, ok := item.(bson.D)
 	suite.Require().True(ok)
-	alpha, found := itemD.Map()[field]
+	fldVal, found := itemD.Map()[field]
 	suite.Require().True(found)
-	suite.Equal(alpha, value)
+	suite.Equal(fldVal, value)
 }

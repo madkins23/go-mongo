@@ -157,6 +157,7 @@ func (suite *cacheTestSuite) TestReplace() {
 	suite.True(IsNotFound(err))                      // gone
 	item, err = suite.cached.Find(test.SimpleItem1x) // look for new item
 	suite.Require().NoError(err)                     // found
+	suite.Require().NotNil(item)
 	suite.Equal("xRay", item.Alpha)
 	suite.NotNil(suite.cached.cache[test.SimpleItem1x.CacheKey()])
 	// Replace with same value:

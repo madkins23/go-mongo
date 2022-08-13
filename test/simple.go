@@ -51,6 +51,7 @@ func (tk *SimpleKey) Filter() bson.D {
 type SimpleItem struct {
 	SimpleKey `bson:"inline"`
 	Charlie   string
+	Delta     int
 	Realized  bool
 	expires   time.Time
 }
@@ -70,13 +71,18 @@ func (ti *SimpleItem) Realize() error {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+const (
+	SimpleCharlie1 = "One is the loneliest number"
+)
+
 var (
 	SimpleItem1 = &SimpleItem{
 		SimpleKey: SimpleKey{
 			Alpha: "one",
 			Bravo: 1,
 		},
-		Charlie: "One is the loneliest number",
+		Charlie: SimpleCharlie1,
+		Delta:   1,
 	}
 	SimpleItem1x = &SimpleItem{
 		SimpleKey: SimpleKey{

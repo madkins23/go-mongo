@@ -144,13 +144,13 @@ func (suite *typedTestSuite) TestReplace() {
 	item, err := suite.typed.Find(test.SimpleItem1.Filter())
 	suite.Require().NoError(err)
 	suite.Equal("one", item.Alpha)
-	suite.Require().NoError(err)
 	// Replace with new value:
 	suite.Require().NoError(suite.typed.Replace(test.SimpleItem1, test.SimpleItem1x))
 	_, err = suite.typed.Find(test.SimpleItem1.Filter())     // look for old item
 	suite.True(IsNotFound(err))                              // gone
 	item, err = suite.typed.Find(test.SimpleItem1x.Filter()) // look for new item
 	suite.Require().NoError(err)                             // found
+	suite.Require().NotNil(item)
 	suite.Equal("xRay", item.Alpha)
 	// Replace with same value:
 	err = suite.typed.Replace(test.SimpleItem1x, test.SimpleItem1x)
