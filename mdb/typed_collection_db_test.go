@@ -169,6 +169,33 @@ func (suite *typedTestSuite) TestReplace() {
 	suite.Equal("three", item.Alpha)
 }
 
+func (suite *typedTestSuite) TestUpdate() {
+	suite.Require().NoError(suite.typed.Create(test.SimpleItem1))
+	item, err := suite.typed.Find(test.SimpleItem1.Filter())
+	suite.Require().NoError(err)
+	suite.Equal("one", item.Alpha)
+	suite.Equal(test.SimpleCharlie1, item.Charlie)
+	suite.Equal(1, item.Delta)
+	// Set charlie and delta fields:
+	suite.Require().NoError(
+		suite.typed.Update(test.SimpleItem1.Filter(), bson.M{
+			"$set": bson.M{"charlie": "One more time"},
+			"$inc": bson.M{"delta": 2},
+		}))
+	item, err = suite.typed.Find(test.SimpleItem1.Filter())
+	suite.Require().NoError(err)
+	suite.Require().NotNil(item)
+	suite.Equal("One more time", item.Charlie)
+	suite.Equal(3, item.Delta)
+	// No match for filter:
+	item, err = suite.typed.Find(test.SimpleItem3.Filter())
+	suite.True(IsNotFound(err))
+	suite.ErrorIs(suite.typed.Update(test.SimpleItem3.Filter(), bson.M{
+		"$set": bson.M{"charlie": "Horse"},
+		"$inc": bson.M{"delta": 7},
+	}), errNoItemMatch)
+}
+
 func (suite *typedTestSuite) TestStringValuesFor() {
 	typed, err := ConnectTypedCollection[test.SimpleItem](suite.access, testCollectionStringValues)
 	suite.Require().NoError(err)
