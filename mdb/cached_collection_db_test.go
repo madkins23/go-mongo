@@ -182,6 +182,33 @@ func (suite *cacheTestSuite) TestReplace() {
 	suite.NotNil(suite.cached.cache[test.SimpleItem3.CacheKey()])
 }
 
+func (suite *cacheTestSuite) TestUpdate() {
+	suite.Require().NoError(suite.cached.Create(test.SimpleItem1))
+	item, err := suite.cached.Find(test.SimpleItem1)
+	suite.Require().NoError(err)
+	suite.Equal("one", item.Alpha)
+	suite.Equal(test.SimpleCharlie1, item.Charlie)
+	suite.Equal(1, item.Delta)
+	// Set charlie and delta fields:
+	suite.Require().NoError(
+		suite.cached.Update(test.SimpleItem1, bson.M{
+			"$set": bson.M{"charlie": "One more time"},
+			"$inc": bson.M{"delta": 2},
+		}))
+	item, err = suite.cached.Find(test.SimpleItem1)
+	suite.Require().NoError(err)
+	suite.Require().NotNil(item)
+	suite.Equal("One more time", item.Charlie)
+	suite.Equal(3, item.Delta)
+	// No match for filter:
+	item, err = suite.cached.Find(test.SimpleItem3)
+	suite.True(IsNotFound(err))
+	suite.ErrorIs(suite.cached.Update(test.SimpleItem3, bson.M{
+		"$set": bson.M{"charlie": "Horse"},
+		"$inc": bson.M{"delta": 7},
+	}), errNoItemMatch)
+}
+
 func (suite *cacheTestSuite) TestStringValuesFor() {
 	cached, err := ConnectCachedCollection[*test.SimpleItem](suite.access, testCollectionStringValues, time.Hour)
 	suite.NotNil(cached)

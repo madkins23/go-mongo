@@ -24,13 +24,16 @@ func ConnectTypedCollection[T any](access *Access, definition *CollectionDefinit
 // Will return an interface to an item of the collection's type.
 // If the item is Realizable then it will be realized before returning.
 func (c *TypedCollection[T]) Find(filter bson.D) (*T, error) {
-	item := new(T)
-	err := c.FindOne(c.ctx, filter).Decode(item)
-	if err != nil {
+	result := c.FindOne(c.ctx, filter)
+	if err := result.Err(); err != nil {
 		if IsNotFound(err) {
 			return nil, fmt.Errorf("no item '%v': %w", filter, err)
 		}
 		return nil, fmt.Errorf("find item '%v': %w", filter, err)
+	}
+	item := new(T)
+	if err := result.Decode(item); err != nil {
+		return item, fmt.Errorf("decode item: %w", err)
 	}
 
 	return item, nil

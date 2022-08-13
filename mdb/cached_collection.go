@@ -98,15 +98,17 @@ func (c *CachedCollection[C]) Find(searchFor Searchable) (C, error) {
 	}
 
 	if !found {
-		newItem := new(C)
-		err := c.FindOne(c.ctx, searchFor).Decode(newItem)
-		if err != nil {
+		result := c.FindOne(c.ctx, searchFor.Filter())
+		if err := result.Err(); err != nil {
 			if IsNotFound(err) {
 				return item, fmt.Errorf("no item '%v': %w", searchFor, err)
 			}
 			return item, fmt.Errorf("find item '%v': %w", searchFor, err)
 		}
-
+		newItem := new(C)
+		if err := result.Decode(newItem); err != nil {
+			return item, fmt.Errorf("decode item: %w", err)
+		}
 		c.cache[cacheKey] = *newItem
 		return *newItem, nil
 	}
@@ -170,15 +172,34 @@ func (c *CachedCollection[T]) Iterate(filter bson.D, fn func(item T) error) erro
 // Unlike Collection and TypedCollection Replace methods
 // the filter here must be a typed item in order to properly clear the cache entry.
 func (c *CachedCollection[T]) Replace(filter, item T, opts ...*options.UpdateOptions) error {
-	err := c.Collection.Replace(filter.Filter(), item, opts...)
+	return c.Update(filter, bson.M{"$set": item}, opts...)
+
+	//err := c.Collection.Replace(filter.Filter(), item, opts...)
+	//if err != nil {
+	//	return fmt.Errorf("basic replace: %w", err)
+	//}
+	//
+	//itemKey := item.CacheKey()
+	//delete(c.cache, itemKey)
+	//if filterKey := filter.CacheKey(); filterKey != itemKey {
+	//	delete(c.cache, filterKey)
+	//}
+	//return nil
+}
+
+// Update item referenced by filter by applying update operator expressions.
+// If the filter matches more than one document mongo-go-driver will choose one to update.
+func (c *CachedCollection[T]) Update(filter T, changes interface{}, opts ...*options.UpdateOptions) error {
+	err := c.Collection.Update(filter.Filter(), changes, opts...)
 	if err != nil {
 		return fmt.Errorf("basic replace: %w", err)
 	}
 
-	itemKey := item.CacheKey()
-	delete(c.cache, itemKey)
-	if filterKey := filter.CacheKey(); filterKey != itemKey {
-		delete(c.cache, filterKey)
-	}
+	filterKey := filter.CacheKey()
+	delete(c.cache, filterKey)
+
+	// If the changes affect the cache key there is no convenient way to figure
+	// out what the new cache key would be in order to delete it from the cache.
+
 	return nil
 }
