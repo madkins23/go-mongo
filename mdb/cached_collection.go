@@ -107,6 +107,7 @@ func (c *CachedCollection[C]) Find(searchFor Searchable) (C, error) {
 			return item, fmt.Errorf("find item '%v': %w", searchFor, err)
 		}
 
+		c.cache[cacheKey] = *newItem
 		return *newItem, nil
 	}
 
@@ -174,10 +175,10 @@ func (c *CachedCollection[T]) Replace(filter, item T, opts ...*options.UpdateOpt
 		return fmt.Errorf("basic replace: %w", err)
 	}
 
-	filterKey := filter.CacheKey()
-	delete(c.cache, filterKey)
-	if itemKey := item.CacheKey(); filterKey != itemKey {
-		delete(c.cache, itemKey)
+	itemKey := item.CacheKey()
+	delete(c.cache, itemKey)
+	if filterKey := filter.CacheKey(); filterKey != itemKey {
+		delete(c.cache, filterKey)
 	}
 	return nil
 }

@@ -78,5 +78,3 @@ func (c *TypedCollection[T]) Iterate(filter bson.D, fn func(item *T) error) erro
 
 	return nil
 }
-
-// The default Replace method seems to work fine for typed collections.

@@ -149,29 +149,36 @@ func (suite *cacheTestSuite) TestReplace() {
 	item, err := suite.cached.Find(test.SimpleItem1)
 	suite.Require().NoError(err)
 	suite.Equal("one", item.Alpha)
-	suite.Require().NoError(err)
+	suite.NotNil(suite.cached.cache[test.SimpleItem1.CacheKey()])
 	// Replace with new value:
 	suite.Require().NoError(suite.cached.Replace(test.SimpleItem1, test.SimpleItem1x))
+	suite.Nil(suite.cached.cache[test.SimpleItem1.CacheKey()])
 	_, err = suite.cached.Find(test.SimpleItem1)     // look for old item
 	suite.True(IsNotFound(err))                      // gone
 	item, err = suite.cached.Find(test.SimpleItem1x) // look for new item
 	suite.Require().NoError(err)                     // found
 	suite.Equal("xRay", item.Alpha)
+	suite.NotNil(suite.cached.cache[test.SimpleItem1x.CacheKey()])
 	// Replace with same value:
 	err = suite.cached.Replace(test.SimpleItem1x, test.SimpleItem1x)
 	suite.Require().ErrorIs(err, errNoItemModified)
+	suite.NotNil(suite.cached.cache[test.SimpleItem1x.CacheKey()])
 	item, err = suite.cached.Find(test.SimpleItem1x)
 	suite.Require().NoError(err)
 	suite.Equal("xRay", item.Alpha)
+	suite.NotNil(suite.cached.cache[test.SimpleItem1x.CacheKey()])
 	// No match for filter:
 	item, err = suite.cached.Find(test.SimpleItem3)
 	suite.True(IsNotFound(err))
 	suite.ErrorIs(suite.cached.Replace(test.SimpleItem3, test.SimpleItem3), errNoItemMatch)
+	suite.Nil(suite.cached.cache[test.SimpleItem3.CacheKey()])
 	// Upsert new item:
-	//suite.NoError(suite.cached.Replace(NoFilter(), test.SimpleItem3))
-	//item, err = suite.cached.Find(test.SimpleItem3)
-	//suite.Require().NoError(err)
-	//suite.Equal("three", item.Alpha)
+	suite.NoError(suite.cached.Replace(test.UnfilteredItem, test.SimpleItem3))
+	suite.Nil(suite.cached.cache[test.UnfilteredItem.CacheKey()])
+	item, err = suite.cached.Find(test.SimpleItem3)
+	suite.Require().NoError(err)
+	suite.Equal("three", item.Alpha)
+	suite.NotNil(suite.cached.cache[test.SimpleItem3.CacheKey()])
 }
 
 func (suite *cacheTestSuite) TestStringValuesFor() {

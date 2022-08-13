@@ -28,8 +28,9 @@ var SimpleValidatorJSON = `{
 ////////////////////////////////////////////////////////////////////////////////
 
 type SimpleKey struct {
-	Alpha string
-	Bravo int
+	Alpha      string
+	Bravo      int
+	unfiltered bool
 }
 
 func (tk *SimpleKey) CacheKey() string {
@@ -37,9 +38,13 @@ func (tk *SimpleKey) CacheKey() string {
 }
 
 func (tk *SimpleKey) Filter() bson.D {
-	return bson.D{
-		{"alpha", tk.Alpha},
-		{"bravo", tk.Bravo},
+	if tk.unfiltered {
+		return bson.D{}
+	} else {
+		return bson.D{
+			{"alpha", tk.Alpha},
+			{"bravo", tk.Bravo},
+		}
 	}
 }
 
@@ -56,13 +61,6 @@ func (ti *SimpleItem) ExpireAfter(duration time.Duration) {
 
 func (ti *SimpleItem) Expired() bool {
 	return time.Now().After(ti.expires)
-}
-
-func (ti *SimpleItem) Filter() bson.D {
-	return bson.D{
-		{"alpha", ti.Alpha},
-		{"bravo", ti.Bravo},
-	}
 }
 
 func (ti *SimpleItem) Realize() error {
@@ -100,6 +98,14 @@ var (
 			Bravo: 3,
 		},
 		Charlie: "Three can keep a secret if two of them are dead",
+	}
+	UnfilteredItem = &SimpleItem{
+		SimpleKey: SimpleKey{
+			Alpha:      "Camel",
+			Bravo:      100,
+			unfiltered: true,
+		},
+		Charlie: "Mirage",
 	}
 	SimplyInvalid = &SimpleKey{
 		Alpha: "beast",

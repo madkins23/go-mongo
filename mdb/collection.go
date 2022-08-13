@@ -162,6 +162,7 @@ var errNoItemMatch = errors.New("no matching item")
 var errNoItemModified = errors.New("no modified item")
 
 // Replace entire item referenced by filter with specified item.
+// If the filter matches more than one document Mongo will choose one to update.
 func (c *Collection) Replace(filter, item interface{}, opts ...*options.UpdateOptions) error {
 	result, err := c.UpdateOne(c.Context(), filter, bson.M{"$set": item}, opts...)
 	if err != nil {
@@ -178,6 +179,7 @@ func (c *Collection) Replace(filter, item interface{}, opts ...*options.UpdateOp
 
 ////////////////////////////////////////////////////////////////////////////////
 
+// NoFilter returns an empty bson.D object for use as an empty filter.
 func NoFilter() bson.D {
 	return bson.D{}
 }
