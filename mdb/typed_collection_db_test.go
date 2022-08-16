@@ -153,6 +153,7 @@ func (suite *typedTestSuite) TestReplace() {
 	suite.Require().NoError(err)
 	suite.NotNil(item)
 	suite.NotNil(item.ID)
+	itemID := item.ID
 	suite.Equal("one", item.Alpha)
 	// Replace with new value:
 	suite.Require().NoError(suite.typed.Replace(test.SimpleItem1, test.SimpleItem1x))
@@ -163,6 +164,7 @@ func (suite *typedTestSuite) TestReplace() {
 	suite.Require().NotNil(item)
 	suite.NotNil(item.ID)
 	suite.Equal("xRay", item.Alpha)
+	suite.Equal(itemID, item.ID)
 	// Replace with same value:
 	err = suite.typed.Replace(test.SimpleItem1x, test.SimpleItem1x)
 	suite.Require().ErrorIs(err, errNoItemModified)
@@ -170,7 +172,7 @@ func (suite *typedTestSuite) TestReplace() {
 	suite.Require().NoError(err)
 	suite.NotNil(item)
 	suite.NotNil(item.ID)
-	itemID := item.ID
+	suite.Equal(itemID, item.ID)
 	suite.Equal("xRay", item.Alpha)
 	// No match for filter:
 	item, err = suite.typed.Find(test.SimpleItem3.Filter())
