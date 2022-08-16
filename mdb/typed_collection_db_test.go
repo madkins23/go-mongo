@@ -9,6 +9,7 @@ import (
 	"github.com/madkins23/go-type/reg"
 	"github.com/stretchr/testify/suite"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/madkins23/go-mongo/test"
 )
@@ -45,6 +46,7 @@ func (suite *typedTestSuite) TestCreateDuplicate() {
 	item, err := suite.typed.Find(test.SimpleItem1.Filter())
 	suite.Require().NoError(err)
 	suite.NotNil(item)
+	suite.NotNil(item.ID)
 	err = suite.typed.Create(test.SimpleItem1)
 	suite.Require().Error(err)
 	suite.Require().True(IsDuplicate(err))
@@ -65,13 +67,18 @@ func (suite *typedTestSuite) TestFindOrCreate() {
 	item, err = suite.typed.FindOrCreate(test.SimpleItem2.Filter(), test.SimpleItem2)
 	suite.Require().NoError(err)
 	suite.NotNil(item)
+	suite.NotNil(item.ID)
+	itemID := item.ID
 	item, err = suite.typed.Find(test.SimpleItem2.Filter())
 	suite.Require().NoError(err)
 	suite.NotNil(item)
+	suite.NotNil(item.ID)
+	suite.Equal(itemID, item.ID)
 	item2, err := suite.typed.FindOrCreate(test.SimpleItem2.Filter(), test.SimpleItem2)
 	suite.Require().NoError(err)
 	suite.NotNil(item2)
 	suite.Equal(item, item2)
+	suite.Equal(itemID, item2.ID)
 }
 
 func (suite *typedTestSuite) TestCreateFindDelete() {
@@ -80,6 +87,7 @@ func (suite *typedTestSuite) TestCreateFindDelete() {
 	item, err := suite.typed.Find(test.SimpleItem2.Filter())
 	suite.Require().NoError(err)
 	suite.NotNil(item)
+	suite.NotNil(item.ID)
 	cacheKey := test.SimpleItem2.CacheKey()
 	suite.NotEmpty(cacheKey)
 	err = suite.typed.Delete(test.SimpleItem2.Filter(), false)
@@ -143,6 +151,8 @@ func (suite *typedTestSuite) TestReplace() {
 	suite.Require().NoError(suite.typed.Create(test.SimpleItem1))
 	item, err := suite.typed.Find(test.SimpleItem1.Filter())
 	suite.Require().NoError(err)
+	suite.NotNil(item)
+	suite.NotNil(item.ID)
 	suite.Equal("one", item.Alpha)
 	// Replace with new value:
 	suite.Require().NoError(suite.typed.Replace(test.SimpleItem1, test.SimpleItem1x))
@@ -151,12 +161,16 @@ func (suite *typedTestSuite) TestReplace() {
 	item, err = suite.typed.Find(test.SimpleItem1x.Filter()) // look for new item
 	suite.Require().NoError(err)                             // found
 	suite.Require().NotNil(item)
+	suite.NotNil(item.ID)
 	suite.Equal("xRay", item.Alpha)
 	// Replace with same value:
 	err = suite.typed.Replace(test.SimpleItem1x, test.SimpleItem1x)
 	suite.Require().ErrorIs(err, errNoItemModified)
 	item, err = suite.typed.Find(test.SimpleItem1x.Filter())
 	suite.Require().NoError(err)
+	suite.NotNil(item)
+	suite.NotNil(item.ID)
+	itemID := item.ID
 	suite.Equal("xRay", item.Alpha)
 	// No match for filter:
 	item, err = suite.typed.Find(test.SimpleItem3.Filter())
@@ -166,13 +180,19 @@ func (suite *typedTestSuite) TestReplace() {
 	suite.NoError(suite.typed.Replace(NoFilter(), test.SimpleItem3))
 	item, err = suite.typed.Find(test.SimpleItem3.Filter())
 	suite.Require().NoError(err)
+	suite.NotNil(item)
+	suite.NotNil(item.ID)
 	suite.Equal("three", item.Alpha)
+	suite.Equal(itemID, item.ID)
 }
 
 func (suite *typedTestSuite) TestUpdate() {
 	suite.Require().NoError(suite.typed.Create(test.SimpleItem1))
 	item, err := suite.typed.Find(test.SimpleItem1.Filter())
 	suite.Require().NoError(err)
+	suite.NotNil(item)
+	suite.NotNil(item.ID)
+	itemID := item.ID
 	suite.Equal("one", item.Alpha)
 	suite.Equal(test.SimpleCharlie1, item.Charlie)
 	suite.Equal(1, item.Delta)
@@ -184,9 +204,11 @@ func (suite *typedTestSuite) TestUpdate() {
 		}))
 	item, err = suite.typed.Find(test.SimpleItem1.Filter())
 	suite.Require().NoError(err)
-	suite.Require().NotNil(item)
+	suite.NotNil(item)
+	suite.NotNil(item.ID)
 	suite.Equal("One more time", item.Charlie)
 	suite.Equal(3, item.Delta)
+	suite.Equal(itemID, item.ID)
 	// No match for filter:
 	item, err = suite.typed.Find(test.SimpleItem3.Filter())
 	suite.True(IsNotFound(err))
@@ -232,6 +254,9 @@ func (suite *typedTestSuite) TestCreateFindDeleteWrapped() {
 	foundWrapped, err := wrapped.Find(wrappedItems.Filter())
 	suite.Require().NoError(err)
 	suite.Require().NotNil(foundWrapped)
+	suite.NotNil(foundWrapped.ID)
+	// Zero out the object ID before testing equality.
+	foundWrapped.ID = primitive.ObjectID{}
 	suite.Equal(wrappedItems, foundWrapped)
 	suite.Equal(test.ValueText, foundWrapped.Single.Get().String())
 	for _, item := range foundWrapped.Array {

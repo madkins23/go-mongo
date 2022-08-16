@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 var SimpleValidatorJSON = `{
@@ -49,6 +50,7 @@ func (tk *SimpleKey) Filter() bson.D {
 }
 
 type SimpleItem struct {
+	ID        primitive.ObjectID `bson:"_id,omitempty"`
 	SimpleKey `bson:"inline"`
 	Charlie   string
 	Delta     int
