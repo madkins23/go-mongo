@@ -14,6 +14,7 @@ import (
 // This is most useful for objects that change rarely.
 //
 // TODO(mAdkins): Should this be made thread-safe?
+// TODO(mAdkins): Should the change stream be used to clear cache items?
 type CachedCollection[C Cacheable] struct {
 	TypedCollection[C]
 	cache       map[string]C
