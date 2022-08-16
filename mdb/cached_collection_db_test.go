@@ -10,6 +10,7 @@ import (
 	"github.com/madkins23/go-type/reg"
 	"github.com/stretchr/testify/suite"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/madkins23/go-mongo/test"
 )
@@ -46,6 +47,7 @@ func (suite *cacheTestSuite) TestCreateDuplicate() {
 	item, err := suite.cached.Find(test.SimpleItem1)
 	suite.Require().NoError(err)
 	suite.NotNil(item)
+	suite.NotNil(item.ID)
 	err = suite.cached.Create(test.SimpleItem1)
 	suite.Require().Error(err)
 	suite.Require().True(IsDuplicate(err))
@@ -66,13 +68,17 @@ func (suite *cacheTestSuite) TestFindOrCreate() {
 	item, err = suite.cached.FindOrCreate(test.SimpleItem2)
 	suite.Require().NoError(err)
 	suite.NotNil(item)
+	suite.NotNil(item.ID)
+	itemID := item.ID
 	item, err = suite.cached.Find(test.SimpleItem2)
 	suite.Require().NoError(err)
 	suite.NotNil(item)
+	suite.Equal(itemID, item.ID)
 	item2, err := suite.cached.FindOrCreate(test.SimpleItem2)
 	suite.Require().NoError(err)
 	suite.NotNil(item2)
 	suite.Equal(item, item2)
+	suite.Equal(itemID, item.ID)
 }
 
 func (suite *cacheTestSuite) TestCreateFindDelete() {
@@ -81,6 +87,7 @@ func (suite *cacheTestSuite) TestCreateFindDelete() {
 	item, err := suite.cached.Find(test.SimpleItem1)
 	suite.Require().NoError(err)
 	suite.NotNil(item)
+	suite.NotNil(item.ID)
 	cacheKey := test.SimpleItem1.CacheKey()
 	suite.NotEmpty(cacheKey)
 	_, ok := suite.cached.cache[cacheKey]
@@ -148,6 +155,9 @@ func (suite *cacheTestSuite) TestReplace() {
 	suite.Require().NoError(suite.cached.Create(test.SimpleItem1))
 	item, err := suite.cached.Find(test.SimpleItem1)
 	suite.Require().NoError(err)
+	suite.NotNil(item)
+	suite.NotNil(item.ID)
+	itemID := item.ID
 	suite.Equal("one", item.Alpha)
 	suite.NotNil(suite.cached.cache[test.SimpleItem1.CacheKey()])
 	// Replace with new value:
@@ -158,6 +168,8 @@ func (suite *cacheTestSuite) TestReplace() {
 	item, err = suite.cached.Find(test.SimpleItem1x) // look for new item
 	suite.Require().NoError(err)                     // found
 	suite.Require().NotNil(item)
+	suite.NotNil(item)
+	suite.Equal(itemID, item.ID)
 	suite.Equal("xRay", item.Alpha)
 	suite.NotNil(suite.cached.cache[test.SimpleItem1x.CacheKey()])
 	// Replace with same value:
@@ -166,6 +178,8 @@ func (suite *cacheTestSuite) TestReplace() {
 	suite.NotNil(suite.cached.cache[test.SimpleItem1x.CacheKey()])
 	item, err = suite.cached.Find(test.SimpleItem1x)
 	suite.Require().NoError(err)
+	suite.NotNil(item)
+	suite.Equal(itemID, item.ID)
 	suite.Equal("xRay", item.Alpha)
 	suite.NotNil(suite.cached.cache[test.SimpleItem1x.CacheKey()])
 	// No match for filter:
@@ -178,6 +192,8 @@ func (suite *cacheTestSuite) TestReplace() {
 	suite.Nil(suite.cached.cache[test.UnfilteredItem.CacheKey()])
 	item, err = suite.cached.Find(test.SimpleItem3)
 	suite.Require().NoError(err)
+	suite.NotNil(item)
+	suite.Equal(itemID, item.ID)
 	suite.Equal("three", item.Alpha)
 	suite.NotNil(suite.cached.cache[test.SimpleItem3.CacheKey()])
 }
@@ -186,6 +202,9 @@ func (suite *cacheTestSuite) TestUpdate() {
 	suite.Require().NoError(suite.cached.Create(test.SimpleItem1))
 	item, err := suite.cached.Find(test.SimpleItem1)
 	suite.Require().NoError(err)
+	suite.Require().NotNil(item)
+	suite.NotNil(item.ID)
+	itemID := item.ID
 	suite.Equal("one", item.Alpha)
 	suite.Equal(test.SimpleCharlie1, item.Charlie)
 	suite.Equal(1, item.Delta)
@@ -198,6 +217,7 @@ func (suite *cacheTestSuite) TestUpdate() {
 	item, err = suite.cached.Find(test.SimpleItem1)
 	suite.Require().NoError(err)
 	suite.Require().NotNil(item)
+	suite.Equal(itemID, item.ID)
 	suite.Equal("One more time", item.Charlie)
 	suite.Equal(3, item.Delta)
 	// No match for filter:
@@ -244,6 +264,9 @@ func (suite *cacheTestSuite) TestCreateFindDeleteWrapped() {
 	foundWrapped, err := wrapped.Find(wrappedItems)
 	suite.Require().NoError(err)
 	suite.Require().NotNil(foundWrapped)
+	suite.NotNil(foundWrapped.ID)
+	// Zero out the object ID before testing equality.
+	foundWrapped.ID = primitive.ObjectID{}
 	suite.Equal(wrappedItems, foundWrapped)
 	suite.Equal(test.ValueText, foundWrapped.Single.Get().String())
 	for _, item := range foundWrapped.Array {

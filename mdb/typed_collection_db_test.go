@@ -163,8 +163,8 @@ func (suite *typedTestSuite) TestReplace() {
 	suite.Require().NoError(err)                             // found
 	suite.Require().NotNil(item)
 	suite.NotNil(item.ID)
-	suite.Equal("xRay", item.Alpha)
 	suite.Equal(itemID, item.ID)
+	suite.Equal("xRay", item.Alpha)
 	// Replace with same value:
 	err = suite.typed.Replace(test.SimpleItem1x, test.SimpleItem1x)
 	suite.Require().ErrorIs(err, errNoItemModified)
@@ -207,10 +207,9 @@ func (suite *typedTestSuite) TestUpdate() {
 	item, err = suite.typed.Find(test.SimpleItem1.Filter())
 	suite.Require().NoError(err)
 	suite.NotNil(item)
-	suite.NotNil(item.ID)
+	suite.Equal(itemID, item.ID)
 	suite.Equal("One more time", item.Charlie)
 	suite.Equal(3, item.Delta)
-	suite.Equal(itemID, item.ID)
 	// No match for filter:
 	item, err = suite.typed.Find(test.SimpleItem3.Filter())
 	suite.True(IsNotFound(err))

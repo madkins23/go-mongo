@@ -57,8 +57,7 @@ func (c *CachedCollection[Cacheable]) Create(item Cacheable) error {
 	if _, err := c.InsertOne(c.ctx, item); err != nil {
 		return fmt.Errorf("insert item: %w", err)
 	}
-	item.ExpireAfter(c.expireAfter)
-	c.cache[item.CacheKey()] = item
+	// Don't cache the item here as it won't have any Mongo-generated ID.
 	return nil
 }
 
