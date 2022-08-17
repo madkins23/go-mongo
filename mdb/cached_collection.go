@@ -53,15 +53,6 @@ type Searchable interface {
 	Filter() bson.D
 }
 
-// Create item in DB and cache.
-func (c *CachedCollection[Cacheable]) Create(item Cacheable) error {
-	if _, err := c.InsertOne(c.ctx, item); err != nil {
-		return fmt.Errorf("insert item: %w", err)
-	}
-	// Don't cache the item here as it won't have any Mongo-generated ID.
-	return nil
-}
-
 // Delete object in cache and DB.
 // Because items are Cacheable (and therefore Searchable) the item itself is passed instead of a filter.
 func (c *CachedCollection[Cacheable]) Delete(item Searchable, idempotent bool) error {
