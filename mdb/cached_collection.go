@@ -2,13 +2,15 @@ package mdb
 
 import (
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/madkins23/go-utils/check"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
+
+	"github.com/madkins23/go-mongo/mdbid"
 )
 
 // CachedCollection caches Mongo-stored objects so that the same object is always returned.
@@ -17,7 +19,7 @@ import (
 // TODO(mAdkins): Should the change stream be used to clear cache items?
 type CachedCollection[C Cacheable] struct {
 	TypedCollection[C]
-	cache       map[string]C
+	cache       map[primitive.ObjectID]C
 	expireAfter time.Duration
 	lock        sync.Mutex
 }
@@ -26,7 +28,7 @@ type CachedCollection[C Cacheable] struct {
 func ConnectCachedCollection[C Cacheable](
 	access *Access, definition *CollectionDefinition, expireAfter time.Duration) (*CachedCollection[C], error) {
 	collection := &CachedCollection[C]{
-		cache:       make(map[string]C),
+		cache:       make(map[primitive.ObjectID]C),
 		expireAfter: expireAfter,
 	}
 	if err := access.CollectionConnect(&collection.Collection, definition); err != nil {
@@ -37,8 +39,8 @@ func ConnectCachedCollection[C Cacheable](
 
 // Cacheable must be searchable and loadable.
 type Cacheable interface {
-	Searchable
 	Expirable
+	mdbid.ObjectIDer
 }
 
 // Expirable defines behavior
@@ -47,18 +49,11 @@ type Expirable interface {
 	Expired() bool
 }
 
-// Searchable may be used just for searching for a cached item.
-// This supports keys that are not complete items.
-type Searchable interface {
-	CacheKey() string
-	Filter() bson.D
-}
-
 // Delete object in cache and DB.
 // Because items are Cacheable (and therefore Searchable) the item itself is passed instead of a filter.
-func (c *CachedCollection[Cacheable]) Delete(item Searchable, idempotent bool) error {
+func (c *CachedCollection[Cacheable]) Delete(item mdbid.ObjectIDer, idempotent bool) error {
 	c.lock.Lock()
-	delete(c.cache, item.CacheKey())
+	delete(c.cache, item.ID())
 	c.lock.Unlock()
 	return c.Collection.Delete(item.Filter(), idempotent)
 }
@@ -66,47 +61,47 @@ func (c *CachedCollection[Cacheable]) Delete(item Searchable, idempotent bool) e
 // DeleteAll all objects in cache and DB.
 func (c *CachedCollection[Cacheable]) DeleteAll() error {
 	c.lock.Lock()
-	c.cache = make(map[string]Cacheable)
+	c.cache = make(map[primitive.ObjectID]Cacheable)
 	c.lock.Unlock()
 	return c.Collection.DeleteAll()
 }
 
 // Find a cacheable object in either cache or database.
-func (c *CachedCollection[C]) Find(searchFor Searchable) (C, error) {
+func (c *CachedCollection[C]) Find(searchItem mdbid.ObjectIDer) (C, error) {
 	var item C
 	var found bool
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	cacheKey := searchFor.CacheKey()
-	if item, found = c.cache[cacheKey]; found {
+	OID := searchItem.ID()
+	if item, found = c.cache[OID]; found {
 		remove := false
 		if check.IsZero[C](item) {
 			remove = true
 		} else {
 			if item.Expired() {
-				delete(c.cache, cacheKey)
+				delete(c.cache, OID)
 				found = false
 			}
 		}
 		if remove {
-			delete(c.cache, cacheKey)
+			delete(c.cache, OID)
 			found = false
 		}
 	}
 
 	if !found {
-		result := c.FindOne(c.ctx, searchFor.Filter())
+		result := c.FindOne(c.ctx, searchItem.Filter())
 		if err := result.Err(); err != nil {
 			if IsNotFound(err) {
-				return item, fmt.Errorf("no item '%v': %w", searchFor, err)
+				return item, fmt.Errorf("no item '%v': %w", searchItem, err)
 			}
-			return item, fmt.Errorf("find item '%v': %w", searchFor, err)
+			return item, fmt.Errorf("find item '%v': %w", searchItem, err)
 		}
 		newItem := new(C)
 		if err := result.Decode(newItem); err != nil {
 			return item, fmt.Errorf("decode item: %w", err)
 		}
-		c.cache[cacheKey] = *newItem
+		c.cache[OID] = *newItem
 		return *newItem, nil
 	}
 
@@ -134,17 +129,6 @@ func (c *CachedCollection[Cacheable]) FindOrCreate(cacheItem Cacheable) (Cacheab
 	}
 
 	return item, nil
-}
-
-// InvalidateByPrefix removes items from the cache if the item key has the specified prefix.
-func (c *CachedCollection[T]) InvalidateByPrefix(prefix string) {
-	c.lock.Lock()
-	for k := range c.cache {
-		if strings.HasPrefix(k, prefix) {
-			delete(c.cache, k)
-		}
-	}
-	c.lock.Unlock()
 }
 
 // Iterate over a set of items, applying the specified function to each one.
@@ -176,19 +160,16 @@ func (c *CachedCollection[T]) Replace(filter, item T, opts ...*options.UpdateOpt
 
 // Update item referenced by filter by applying update operator expressions.
 // If the filter matches more than one document mongo-go-driver will choose one to update.
-func (c *CachedCollection[T]) Update(filter T, changes interface{}, opts ...*options.UpdateOptions) error {
-	err := c.Collection.Update(filter.Filter(), changes, opts...)
+func (c *CachedCollection[T]) Update(filterItem T, changes interface{}, opts ...*options.UpdateOptions) error {
+	err := c.Collection.Update(filterItem.Filter(), changes, opts...)
 	if err != nil {
 		return fmt.Errorf("basic replace: %w", err)
 	}
 
-	filterKey := filter.CacheKey()
+	OID := filterItem.ID()
 	c.lock.Lock()
-	delete(c.cache, filterKey)
+	delete(c.cache, OID)
 	c.lock.Unlock()
-
-	// If the changes affect the cache key there is no convenient way to figure
-	// out what the new cache key would be in order to delete it from the cache.
 
 	return nil
 }

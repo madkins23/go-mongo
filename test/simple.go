@@ -1,11 +1,9 @@
 package test
 
 import (
-	"fmt"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"github.com/madkins23/go-mongo/mdbid"
 )
 
 var SimpleValidatorJSON = `{
@@ -29,32 +27,15 @@ var SimpleValidatorJSON = `{
 ////////////////////////////////////////////////////////////////////////////////
 
 type SimpleKey struct {
-	Alpha      string
-	Bravo      int
-	unfiltered bool
-}
-
-func (tk *SimpleKey) CacheKey() string {
-	return fmt.Sprintf("%s-%d", tk.Alpha, tk.Bravo)
-}
-
-func (tk *SimpleKey) Filter() bson.D {
-	if tk.unfiltered {
-		return bson.D{}
-	} else {
-		return bson.D{
-			{"alpha", tk.Alpha},
-			{"bravo", tk.Bravo},
-		}
-	}
+	Alpha string
+	Bravo int
 }
 
 type SimpleItem struct {
-	ID        primitive.ObjectID `bson:"_id,omitempty"`
+	mdbid.OIDmixin
 	SimpleKey `bson:"inline"`
 	Charlie   string
 	Delta     int
-	Realized  bool
 	expires   time.Time
 }
 
@@ -64,11 +45,6 @@ func (ti *SimpleItem) ExpireAfter(duration time.Duration) {
 
 func (ti *SimpleItem) Expired() bool {
 	return time.Now().After(ti.expires)
-}
-
-func (ti *SimpleItem) Realize() error {
-	ti.Realized = true
-	return nil
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -109,14 +85,16 @@ var (
 	}
 	UnfilteredItem = &SimpleItem{
 		SimpleKey: SimpleKey{
-			Alpha:      "Camel",
-			Bravo:      100,
-			unfiltered: true,
+			Alpha: "Camel",
+			Bravo: 100,
 		},
 		Charlie: "Mirage",
 	}
-	SimplyInvalid = &SimpleKey{
-		Alpha: "beast",
-		Bravo: 666,
+	SimplyInvalid = &SimpleItem{
+		SimpleKey: SimpleKey{
+			Alpha: "Beast",
+			Bravo: 666,
+		},
+		Charlie: "Invalid",
 	}
 )

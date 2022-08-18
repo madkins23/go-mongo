@@ -130,8 +130,6 @@ func (suite *collectionTestSuite) TestCreateFindDelete() {
 	suite.Require().NoError(err)
 	suite.NotNil(item)
 	suite.NotNil(suite.bsonGetID(item))
-	cacheKey := test.SimpleItem2.CacheKey()
-	suite.NotEmpty(cacheKey)
 	err = suite.collection.Delete(test.SimpleItem2.Filter(), false)
 	suite.Require().NoError(err)
 	noItem, err := suite.collection.Find(test.SimpleItem2.Filter())

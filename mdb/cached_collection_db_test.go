@@ -88,7 +88,7 @@ func (suite *cacheTestSuite) TestCreateFindDelete() {
 	suite.Require().NoError(err)
 	suite.NotNil(item)
 	suite.NotNil(item.ID)
-	cacheKey := test.SimpleItem1.CacheKey()
+	cacheKey := test.SimpleItem1.ID()
 	suite.NotEmpty(cacheKey)
 	_, ok := suite.cached.cache[cacheKey]
 	suite.True(ok)
@@ -159,10 +159,10 @@ func (suite *cacheTestSuite) TestReplace() {
 	suite.NotNil(item.ID)
 	itemID := item.ID
 	suite.Equal("one", item.Alpha)
-	suite.NotNil(suite.cached.cache[test.SimpleItem1.CacheKey()])
+	suite.NotNil(suite.cached.cache[test.SimpleItem1.ID()])
 	// Replace with new value:
 	suite.Require().NoError(suite.cached.Replace(test.SimpleItem1, test.SimpleItem1x))
-	suite.Nil(suite.cached.cache[test.SimpleItem1.CacheKey()])
+	suite.Nil(suite.cached.cache[test.SimpleItem1.ID()])
 	_, err = suite.cached.Find(test.SimpleItem1)     // look for old item
 	suite.True(IsNotFound(err))                      // gone
 	item, err = suite.cached.Find(test.SimpleItem1x) // look for new item
@@ -171,31 +171,31 @@ func (suite *cacheTestSuite) TestReplace() {
 	suite.NotNil(item)
 	suite.Equal(itemID, item.ID)
 	suite.Equal("xRay", item.Alpha)
-	suite.NotNil(suite.cached.cache[test.SimpleItem1x.CacheKey()])
+	suite.NotNil(suite.cached.cache[test.SimpleItem1x.ID()])
 	// Replace with same value:
 	err = suite.cached.Replace(test.SimpleItem1x, test.SimpleItem1x)
 	suite.Require().ErrorIs(err, errNoItemModified)
-	suite.NotNil(suite.cached.cache[test.SimpleItem1x.CacheKey()])
+	suite.NotNil(suite.cached.cache[test.SimpleItem1x.ID()])
 	item, err = suite.cached.Find(test.SimpleItem1x)
 	suite.Require().NoError(err)
 	suite.NotNil(item)
 	suite.Equal(itemID, item.ID)
 	suite.Equal("xRay", item.Alpha)
-	suite.NotNil(suite.cached.cache[test.SimpleItem1x.CacheKey()])
+	suite.NotNil(suite.cached.cache[test.SimpleItem1x.ID()])
 	// No match for filter:
 	item, err = suite.cached.Find(test.SimpleItem3)
 	suite.True(IsNotFound(err))
 	suite.ErrorIs(suite.cached.Replace(test.SimpleItem3, test.SimpleItem3), errNoItemMatch)
-	suite.Nil(suite.cached.cache[test.SimpleItem3.CacheKey()])
+	suite.Nil(suite.cached.cache[test.SimpleItem3.ID()])
 	// Upsert new item:
 	suite.NoError(suite.cached.Replace(test.UnfilteredItem, test.SimpleItem3))
-	suite.Nil(suite.cached.cache[test.UnfilteredItem.CacheKey()])
+	suite.Nil(suite.cached.cache[test.UnfilteredItem.ID()])
 	item, err = suite.cached.Find(test.SimpleItem3)
 	suite.Require().NoError(err)
 	suite.NotNil(item)
 	suite.Equal(itemID, item.ID)
 	suite.Equal("three", item.Alpha)
-	suite.NotNil(suite.cached.cache[test.SimpleItem3.CacheKey()])
+	suite.NotNil(suite.cached.cache[test.SimpleItem3.ID()])
 }
 
 func (suite *cacheTestSuite) TestUpdate() {
@@ -266,7 +266,7 @@ func (suite *cacheTestSuite) TestCreateFindDeleteWrapped() {
 	suite.Require().NotNil(foundWrapped)
 	suite.NotNil(foundWrapped.ID)
 	// Zero out the object ID before testing equality.
-	foundWrapped.ID = primitive.ObjectID{}
+	foundWrapped.OID = primitive.ObjectID{}
 	suite.Equal(wrappedItems, foundWrapped)
 	suite.Equal(test.ValueText, foundWrapped.Single.Get().String())
 	for _, item := range foundWrapped.Array {
@@ -291,7 +291,7 @@ func (suite *cacheTestSuite) TestCreateFindDeleteWrapped() {
 	for key, item := range foundWrapped.Map {
 		suite.Equal(key, item.Get().Key())
 	}
-	cacheKey := wrappedItems.CacheKey()
+	cacheKey := wrappedItems.ID()
 	suite.NotEmpty(cacheKey)
 	err = wrapped.Delete(wrappedItems, false)
 	suite.Require().NoError(err)

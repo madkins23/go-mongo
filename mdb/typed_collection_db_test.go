@@ -88,8 +88,6 @@ func (suite *typedTestSuite) TestCreateFindDelete() {
 	suite.Require().NoError(err)
 	suite.NotNil(item)
 	suite.NotNil(item.ID)
-	cacheKey := test.SimpleItem2.CacheKey()
-	suite.NotEmpty(cacheKey)
 	err = suite.typed.Delete(test.SimpleItem2.Filter(), false)
 	suite.Require().NoError(err)
 	noItem, err := suite.typed.Find(test.SimpleItem2.Filter())
@@ -257,7 +255,7 @@ func (suite *typedTestSuite) TestCreateFindDeleteWrapped() {
 	suite.Require().NotNil(foundWrapped)
 	suite.NotNil(foundWrapped.ID)
 	// Zero out the object ID before testing equality.
-	foundWrapped.ID = primitive.ObjectID{}
+	foundWrapped.OID = primitive.ObjectID{}
 	suite.Equal(wrappedItems, foundWrapped)
 	suite.Equal(test.ValueText, foundWrapped.Single.Get().String())
 	for _, item := range foundWrapped.Array {
@@ -282,8 +280,6 @@ func (suite *typedTestSuite) TestCreateFindDeleteWrapped() {
 	for key, item := range foundWrapped.Map {
 		suite.Equal(key, item.Get().Key())
 	}
-	cacheKey := wrappedItems.CacheKey()
-	suite.NotEmpty(cacheKey)
 	err = wrapped.Delete(wrappedItems.Filter(), false)
 	suite.Require().NoError(err)
 	noItem, err := wrapped.Find(wrappedItems.Filter())
