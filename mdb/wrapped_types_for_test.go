@@ -6,6 +6,8 @@ import (
 	"strconv"
 
 	"github.com/madkins23/go-type/reg"
+
+	"github.com/madkins23/go-mongo/mdbson"
 )
 
 // RegisterWrapped registers structs that will be wrapped during testing.
@@ -83,4 +85,37 @@ func (rv *RandomValue) String() string {
 		b[i] = letters[rand.Intn(len(letters))]
 	}
 	return string(b)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+type WrappedItems struct {
+	SimpleItem `bson:"inline"`
+	Single     *mdbson.Wrapper[Wrappable]
+	Array      []*mdbson.Wrapper[Wrappable]
+	Map        map[string]*mdbson.Wrapper[Wrappable]
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+func MakeWrappedItems() *WrappedItems {
+	items := []*mdbson.Wrapper[Wrappable]{
+		mdbson.Wrap[Wrappable](&TextValue{Text: ValueText}),
+		mdbson.Wrap[Wrappable](&NumericValue{Number: ValueNumber}),
+		mdbson.Wrap[Wrappable](&RandomValue{}),
+	}
+	wrapped := &WrappedItems{
+		SimpleItem: SimpleItem{
+			Alpha:   "Wrapped",
+			Bravo:   23,
+			Charlie: "Need this to pass validation",
+		},
+		Single: items[0],
+		Array:  items,
+		Map:    make(map[string]*mdbson.Wrapper[Wrappable], len(items)),
+	}
+	for _, item := range items {
+		wrapped.Map[item.Get().Key()] = item
+	}
+	return wrapped
 }
