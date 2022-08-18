@@ -5,23 +5,23 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// ObjectIDer provides an interface to items that use the primitive Mongo ObjectID.
-type ObjectIDer interface {
+// Identifier provides an interface to items that use the primitive Mongo ObjectID.
+type Identifier interface {
 	ID() primitive.ObjectID
-	Filter() bson.D
+	IDfilter() bson.D
 }
 
-// OIDmixin instantiates the ObjectIDer interface.
-type OIDmixin struct {
+// Identity instantiates the Identifier interface.
+type Identity struct {
 	OID primitive.ObjectID `bson:"_id,omitempty"`
 }
 
 // ID returns the primitive Mongo ObjectID for an item.
-func (idm *OIDmixin) ID() primitive.ObjectID {
+func (idm *Identity) ID() primitive.ObjectID {
 	return idm.OID
 }
 
 // Filter returns a Mongo filter object for the item's ID.
-func (idm *OIDmixin) Filter() bson.D {
+func (idm *Identity) Filter() bson.D {
 	return bson.D{{"_id", idm.OID}}
 }

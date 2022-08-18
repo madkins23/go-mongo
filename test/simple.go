@@ -32,7 +32,7 @@ type SimpleKey struct {
 }
 
 type SimpleItem struct {
-	mdbid.OIDmixin
+	mdbid.Identity
 	SimpleKey `bson:"inline"`
 	Charlie   string
 	Delta     int

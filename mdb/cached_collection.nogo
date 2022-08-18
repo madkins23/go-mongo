@@ -40,7 +40,7 @@ func ConnectCachedCollection[C Cacheable](
 // Cacheable must be searchable and loadable.
 type Cacheable interface {
 	Expirable
-	mdbid.ObjectIDer
+	mdbid.Identifier
 }
 
 // Expirable defines behavior
@@ -51,7 +51,7 @@ type Expirable interface {
 
 // Delete object in cache and DB.
 // Because items are Cacheable (and therefore Searchable) the item itself is passed instead of a filter.
-func (c *CachedCollection[Cacheable]) Delete(item mdbid.ObjectIDer, idempotent bool) error {
+func (c *CachedCollection[Cacheable]) Delete(item mdbid.Identifier, idempotent bool) error {
 	c.lock.Lock()
 	delete(c.cache, item.ID())
 	c.lock.Unlock()
@@ -67,7 +67,7 @@ func (c *CachedCollection[Cacheable]) DeleteAll() error {
 }
 
 // Find a cacheable object in either cache or database.
-func (c *CachedCollection[C]) Find(searchItem mdbid.ObjectIDer) (C, error) {
+func (c *CachedCollection[C]) Find(searchItem mdbid.Identifier) (C, error) {
 	var item C
 	var found bool
 	c.lock.Lock()
