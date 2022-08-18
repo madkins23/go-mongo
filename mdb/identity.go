@@ -1,4 +1,4 @@
-package mdbid
+package mdb
 
 import (
 	"go.mongodb.org/mongo-driver/bson"
@@ -13,15 +13,15 @@ type Identifier interface {
 
 // Identity instantiates the Identifier interface.
 type Identity struct {
-	OID primitive.ObjectID `bson:"_id,omitempty"`
+	ObjectID primitive.ObjectID `bson:"_id,omitempty"`
 }
 
 // ID returns the primitive Mongo ObjectID for an item.
 func (idm *Identity) ID() primitive.ObjectID {
-	return idm.OID
+	return idm.ObjectID
 }
 
 // Filter returns a Mongo filter object for the item's ID.
-func (idm *Identity) Filter() bson.D {
-	return bson.D{{"_id", idm.OID}}
+func (idm *Identity) IDfilter() bson.D {
+	return bson.D{{"_id", idm.ObjectID}}
 }

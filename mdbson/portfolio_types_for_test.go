@@ -1,4 +1,4 @@
-package test
+package mdbson
 
 import (
 	"fmt"
@@ -14,6 +14,9 @@ var _ Borrower = &State{}
 // RegisterPortfolio registers structs that will be wrapped during testing.
 // Uses the github.com/madkins23/go-type library to register structs by name.
 func RegisterPortfolio() error {
+	if err := reg.AddAlias("test", &Stock{}); err != nil {
+		return fmt.Errorf("adding 'test' alias: %w", err)
+	}
 	if err := reg.Register(&Stock{}); err != nil {
 		return fmt.Errorf("registering Stock struct: %w", err)
 	}

@@ -1,4 +1,4 @@
-package test
+package mdb
 
 import (
 	"fmt"

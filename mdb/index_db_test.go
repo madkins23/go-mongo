@@ -6,8 +6,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/suite"
-
-	"github.com/madkins23/go-mongo/test"
 )
 
 type indexTestSuite struct {
@@ -63,7 +61,7 @@ func (suite *indexTestSuite) TestIndexFinisher() {
 	collection, err := ConnectCollection(suite.access,
 		&CollectionDefinition{
 			name:           "test-collection-index-finisher",
-			validationJSON: test.SimpleValidatorJSON,
+			validationJSON: SimpleValidatorJSON,
 			finishers: []CollectionFinisher{
 				index.Finisher(),
 			},

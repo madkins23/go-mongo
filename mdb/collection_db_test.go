@@ -10,8 +10,6 @@ import (
 	"github.com/stretchr/testify/suite"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-
-	"github.com/madkins23/go-mongo/test"
 )
 
 type collectionTestSuite struct {
@@ -41,8 +39,8 @@ func (suite *collectionTestSuite) TestCollectionValidator() {
 	collection, err := ConnectCollection(suite.access, testCollectionValidation)
 	suite.Require().NoError(err)
 	suite.NotNil(collection)
-	suite.Require().NoError(collection.Create(test.SimpleItem1))
-	err = collection.Create(test.SimplyInvalid)
+	suite.Require().NoError(collection.Create(SimpleItem1))
+	err = collection.Create(SimplyInvalid)
 	suite.Require().Error(err)
 	suite.True(IsValidationFailure(err))
 }
@@ -52,7 +50,7 @@ func (suite *collectionTestSuite) TestCollectionValidatorFinisher() {
 	var finished bool
 	definition := &CollectionDefinition{
 		name:           name,
-		validationJSON: test.SimpleValidatorJSON,
+		validationJSON: SimpleValidatorJSON,
 		finishers: []CollectionFinisher{
 			func(access *Access, collection *Collection) error {
 				access.Info("Running finisher")
@@ -73,7 +71,7 @@ func (suite *collectionTestSuite) TestCollectionValidatorFinisherError() {
 	name := "test-collection-validation-finisher-error"
 	collection, err := ConnectCollection(suite.access, &CollectionDefinition{
 		name:           "test-collection-validation-finisher-error",
-		validationJSON: test.SimpleValidatorJSON,
+		validationJSON: SimpleValidatorJSON,
 		finishers: []CollectionFinisher{
 			func(access *Access, collection *Collection) error {
 				return errors.New("fail")
@@ -87,37 +85,37 @@ func (suite *collectionTestSuite) TestCollectionValidatorFinisherError() {
 }
 
 func (suite *collectionTestSuite) TestCreateDuplicate() {
-	err := suite.collection.Create(test.SimpleItem1)
+	err := suite.collection.Create(SimpleItem1)
 	suite.Require().NoError(err)
-	item, err := suite.collection.Find(test.SimpleItem1.Filter())
+	item, err := suite.collection.Find(SimpleItem1.Filter())
 	suite.Require().NoError(err)
 	suite.NotNil(item)
 	suite.NotNil(suite.bsonGetID(item))
-	err = suite.collection.Create(test.SimpleItem1)
+	err = suite.collection.Create(SimpleItem1)
 	suite.Require().Error(err)
 	suite.Require().True(IsDuplicate(err))
 }
 
 func (suite *collectionTestSuite) TestFindNone() {
-	item, err := suite.collection.Find(test.SimplyInvalid.Filter())
+	item, err := suite.collection.Find(SimplyInvalid.Filter())
 	suite.Require().Error(err)
 	suite.True(IsNotFound(err))
 	suite.Nil(item)
 }
 
 func (suite *collectionTestSuite) TestFindOrCreate() {
-	item, err := suite.collection.Find(test.SimpleItem2.Filter())
+	item, err := suite.collection.Find(SimpleItem2.Filter())
 	suite.Require().Error(err)
 	suite.True(IsNotFound(err))
 	suite.Nil(item)
-	item, err = suite.collection.FindOrCreate(test.SimpleItem2.Filter(), test.SimpleItem2)
+	item, err = suite.collection.FindOrCreate(SimpleItem2.Filter(), SimpleItem2)
 	suite.Require().NoError(err)
 	suite.NotNil(item)
 	suite.NotNil(suite.bsonGetID(item))
-	item, err = suite.collection.Find(test.SimpleItem2.Filter())
+	item, err = suite.collection.Find(SimpleItem2.Filter())
 	suite.Require().NoError(err)
 	suite.NotNil(item)
-	item2, err := suite.collection.FindOrCreate(test.SimpleItem2.Filter(), test.SimpleItem2)
+	item2, err := suite.collection.FindOrCreate(SimpleItem2.Filter(), SimpleItem2)
 	suite.Require().NoError(err)
 	suite.NotNil(item2)
 	suite.Equal(item, item2)
@@ -125,27 +123,27 @@ func (suite *collectionTestSuite) TestFindOrCreate() {
 }
 
 func (suite *collectionTestSuite) TestCreateFindDelete() {
-	suite.Require().NoError(suite.collection.Create(test.SimpleItem2))
-	item, err := suite.collection.Find(test.SimpleItem2.Filter())
+	suite.Require().NoError(suite.collection.Create(SimpleItem2))
+	item, err := suite.collection.Find(SimpleItem2.Filter())
 	suite.Require().NoError(err)
 	suite.NotNil(item)
 	suite.NotNil(suite.bsonGetID(item))
-	err = suite.collection.Delete(test.SimpleItem2.Filter(), false)
+	err = suite.collection.Delete(SimpleItem2.Filter(), false)
 	suite.Require().NoError(err)
-	noItem, err := suite.collection.Find(test.SimpleItem2.Filter())
+	noItem, err := suite.collection.Find(SimpleItem2.Filter())
 	suite.Require().Error(err)
 	suite.True(IsNotFound(err))
 	suite.Nil(noItem)
-	err = suite.collection.Delete(test.SimpleItem2.Filter(), false)
+	err = suite.collection.Delete(SimpleItem2.Filter(), false)
 	suite.Require().Error(err)
-	err = suite.collection.Delete(test.SimpleItem2.Filter(), true)
+	err = suite.collection.Delete(SimpleItem2.Filter(), true)
 	suite.Require().NoError(err)
 }
 
 func (suite *collectionTestSuite) TestCountDeleteAll() {
-	suite.Require().NoError(suite.collection.Create(test.SimpleItem1))
-	suite.Require().NoError(suite.collection.Create(test.SimpleItem2))
-	suite.Require().NoError(suite.collection.Create(test.SimpleItem3))
+	suite.Require().NoError(suite.collection.Create(SimpleItem1))
+	suite.Require().NoError(suite.collection.Create(SimpleItem2))
+	suite.Require().NoError(suite.collection.Create(SimpleItem3))
 	count, err := suite.collection.Count(NoFilter())
 	suite.NoError(err)
 	suite.Equal(int64(3), count)
@@ -156,9 +154,9 @@ func (suite *collectionTestSuite) TestCountDeleteAll() {
 }
 
 func (suite *collectionTestSuite) TestIterate() {
-	suite.Require().NoError(suite.collection.Create(test.SimpleItem1))
-	suite.Require().NoError(suite.collection.Create(test.SimpleItem2))
-	suite.Require().NoError(suite.collection.Create(test.SimpleItem3))
+	suite.Require().NoError(suite.collection.Create(SimpleItem1))
+	suite.Require().NoError(suite.collection.Create(SimpleItem2))
+	suite.Require().NoError(suite.collection.Create(SimpleItem3))
 	count := 0
 	var alpha []string
 	suite.NoError(suite.collection.Iterate(NoFilter(),
@@ -177,9 +175,9 @@ func (suite *collectionTestSuite) TestIterate() {
 }
 
 func (suite *collectionTestSuite) TestIterateFiltered() {
-	suite.Require().NoError(suite.collection.Create(test.SimpleItem1))
-	suite.Require().NoError(suite.collection.Create(test.SimpleItem2))
-	suite.Require().NoError(suite.collection.Create(test.SimpleItem3))
+	suite.Require().NoError(suite.collection.Create(SimpleItem1))
+	suite.Require().NoError(suite.collection.Create(SimpleItem2))
+	suite.Require().NoError(suite.collection.Create(SimpleItem3))
 	count := 0
 	var alpha []string
 	suite.NoError(suite.collection.Iterate(bson.D{bson.E{Key: "alpha", Value: "one"}},
@@ -198,60 +196,60 @@ func (suite *collectionTestSuite) TestIterateFiltered() {
 }
 
 func (suite *collectionTestSuite) TestReplace() {
-	suite.Require().NoError(suite.collection.Create(test.SimpleItem1))
-	item, err := suite.collection.Find(test.SimpleItem1.Filter())
+	suite.Require().NoError(suite.collection.Create(SimpleItem1))
+	item, err := suite.collection.Find(SimpleItem1.Filter())
 	suite.Require().NoError(err)
 	suite.bsonFieldEquals(item, "alpha", "one")
 	suite.NotNil(suite.bsonGetID(item))
 	// Replace with new value:
-	suite.Require().NoError(suite.collection.Replace(test.SimpleItem1.Filter(), test.SimpleItem1x))
-	_, err = suite.collection.Find(test.SimpleItem1.Filter())     // look for old item
-	suite.True(IsNotFound(err))                                   // gone
-	item, err = suite.collection.Find(test.SimpleItem1x.Filter()) // look for new item
-	suite.Require().NoError(err)                                  // found
+	suite.Require().NoError(suite.collection.Replace(SimpleItem1.Filter(), SimpleItem1x))
+	_, err = suite.collection.Find(SimpleItem1.Filter())     // look for old item
+	suite.True(IsNotFound(err))                              // gone
+	item, err = suite.collection.Find(SimpleItem1x.Filter()) // look for new item
+	suite.Require().NoError(err)                             // found
 	suite.Require().NotNil(item)
 	suite.bsonFieldEquals(item, "alpha", "xRay")
 	suite.NotNil(suite.bsonGetID(item))
 	// Replace with same value:
-	err = suite.collection.Replace(test.SimpleItem1x.Filter(), test.SimpleItem1x)
+	err = suite.collection.Replace(SimpleItem1x.Filter(), SimpleItem1x)
 	suite.Require().ErrorIs(err, errNoItemModified)
-	item, err = suite.collection.Find(test.SimpleItem1x.Filter())
+	item, err = suite.collection.Find(SimpleItem1x.Filter())
 	suite.Require().NoError(err)
 	suite.bsonFieldEquals(item, "alpha", "xRay")
 	// No match for filter:
-	item, err = suite.collection.Find(test.SimpleItem3.Filter())
+	item, err = suite.collection.Find(SimpleItem3.Filter())
 	suite.True(IsNotFound(err))
-	suite.ErrorIs(suite.collection.Replace(test.SimpleItem3.Filter(), test.SimpleItem3), errNoItemMatch)
+	suite.ErrorIs(suite.collection.Replace(SimpleItem3.Filter(), SimpleItem3), errNoItemMatch)
 	// Upsert new item:
-	suite.NoError(suite.collection.Replace(NoFilter(), test.SimpleItem3))
-	item, err = suite.collection.Find(test.SimpleItem3.Filter())
+	suite.NoError(suite.collection.Replace(NoFilter(), SimpleItem3))
+	item, err = suite.collection.Find(SimpleItem3.Filter())
 	suite.Require().NoError(err)
 	suite.bsonFieldEquals(item, "alpha", "three")
 	suite.NotNil(suite.bsonGetID(item))
 }
 
 func (suite *collectionTestSuite) TestUpdate() {
-	suite.Require().NoError(suite.collection.Create(test.SimpleItem1))
-	item, err := suite.collection.Find(test.SimpleItem1.Filter())
+	suite.Require().NoError(suite.collection.Create(SimpleItem1))
+	item, err := suite.collection.Find(SimpleItem1.Filter())
 	suite.Require().NoError(err)
 	suite.bsonFieldEquals(item, "alpha", "one")
-	suite.bsonFieldEquals(item, "charlie", test.SimpleCharlie1)
+	suite.bsonFieldEquals(item, "charlie", SimpleCharlie1)
 	suite.bsonFieldEquals(item, "delta", int32(1))
 	// Set charlie and delta fields:
 	suite.Require().NoError(
-		suite.collection.Update(test.SimpleItem1.Filter(), bson.M{
+		suite.collection.Update(SimpleItem1.Filter(), bson.M{
 			"$set": bson.M{"charlie": "One more time"},
 			"$inc": bson.M{"delta": 2},
 		}))
-	item, err = suite.collection.Find(test.SimpleItem1.Filter())
+	item, err = suite.collection.Find(SimpleItem1.Filter())
 	suite.Require().NoError(err)
 	suite.Require().NotNil(item)
 	suite.bsonFieldEquals(item, "charlie", "One more time")
 	suite.bsonFieldEquals(item, "delta", int32(3))
 	// No match for filter:
-	item, err = suite.collection.Find(test.SimpleItem3.Filter())
+	item, err = suite.collection.Find(SimpleItem3.Filter())
 	suite.True(IsNotFound(err))
-	suite.ErrorIs(suite.collection.Update(test.SimpleItem3.Filter(), bson.M{
+	suite.ErrorIs(suite.collection.Update(SimpleItem3.Filter(), bson.M{
 		"$set": bson.M{"charlie": "Horse"},
 		"$inc": bson.M{"delta": 7},
 	}), errNoItemMatch)
@@ -263,11 +261,9 @@ func (suite *collectionTestSuite) TestStringValuesFor() {
 	suite.NotNil(collection)
 	for i := 0; i < 5; i++ {
 		suite.Require().NoError(
-			collection.Create(&test.SimpleItem{
-				SimpleKey: test.SimpleKey{
-					Alpha: fmt.Sprintf("Alpha #%d", i),
-					Bravo: i,
-				},
+			collection.Create(&SimpleItem{
+				Alpha:   fmt.Sprintf("Alpha #%d", i),
+				Bravo:   i,
 				Charlie: "There can be only one",
 			}))
 	}
