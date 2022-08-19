@@ -2,20 +2,20 @@ package mdb
 
 var (
 	testCollection = &CollectionDefinition{
-		name: "test-collection",
+		Name: "test-collection",
 	}
 	testCollectionValidation = &CollectionDefinition{
-		name:           "test-collection-validation",
-		validationJSON: SimpleValidatorJSON,
+		Name:           "test-collection-validation",
+		ValidationJSON: SimpleValidatorJSON,
 	}
 	testCollectionStringValues = &CollectionDefinition{
-		name: "test-collection-string-values",
+		Name: "test-collection-string-values",
 	}
 	testCollectionWrapped = &CollectionDefinition{
-		name: "test-collection-wrapped",
+		Name: "test-collection-wrapped",
 	}
 	testCollectionIndexFinisher = &CollectionDefinition{
-		name:           "test-collection-index-finisher",
-		validationJSON: SimpleValidatorJSON,
+		Name:           "test-collection-index-finisher",
+		ValidationJSON: SimpleValidatorJSON,
 	}
 )

@@ -260,21 +260,21 @@ func (a *Access) CollectionExists(name string) (bool, error) {
 // CollectionDefinition contains the definitions necessary for a Collection.
 type CollectionDefinition struct {
 	// Name of collection.
-	name string
+	Name string
 
 	// Options used if collection already exists.
-	connectOptions []*options.CollectionOptions
+	ConnectOptions []*options.CollectionOptions
 
 	// Options used to create collection.
-	createOptions []*options.CreateCollectionOptions
+	CreateOptions []*options.CreateCollectionOptions
 
 	// Convenience field to specify validation data as JSON
-	// which will be decoded and added to createOptions.
-	validationJSON string
+	// which will be decoded and added to CreateOptions.
+	ValidationJSON string
 
-	// Collection finishers are run after creation of a collection.
+	// Collection Finishers are run after creation of a collection.
 	// Finishers support mechanism such as index creation.
-	finishers []CollectionFinisher
+	Finishers []CollectionFinisher
 }
 
 // CollectionFinisher provides a way to add special processing when creating a collection.
@@ -300,32 +300,32 @@ func (a *Access) CollectionConnect(collection *Collection, definition *Collectio
 
 	var exists bool
 	var err error
-	if exists, err = a.CollectionExists(definition.name); err != nil {
-		return fmt.Errorf("check collection '%s' existence: %w", definition.name, err)
+	if exists, err = a.CollectionExists(definition.Name); err != nil {
+		return fmt.Errorf("check collection '%s' existence: %w", definition.Name, err)
 	}
 
 	if !exists &&
 		// If there are no create options or validation JSON simple connection in the next step is OK.
-		(len(definition.createOptions) > 0 || definition.validationJSON != "") {
+		(len(definition.CreateOptions) > 0 || definition.ValidationJSON != "") {
 		// Pre-create the collection to use the specified creation options and/or validation JSON.
-		opts := definition.createOptions
-		if definition.validationJSON != "" {
+		opts := definition.CreateOptions
+		if definition.ValidationJSON != "" {
 			var validator interface{}
-			if err = bson.UnmarshalExtJSON([]byte(definition.validationJSON), false, &validator); err != nil {
+			if err = bson.UnmarshalExtJSON([]byte(definition.ValidationJSON), false, &validator); err != nil {
 				return fmt.Errorf("unmarshal validator for collection: %w", err)
 			}
 			opts = append(opts, &options.CreateCollectionOptions{Validator: validator})
 		}
-		if err = a.database.CreateCollection(connectCtx, definition.name, opts...); err != nil {
-			return fmt.Errorf("creating collection '%s': %w", definition.name, err)
+		if err = a.database.CreateCollection(connectCtx, definition.Name, opts...); err != nil {
+			return fmt.Errorf("creating collection '%s': %w", definition.Name, err)
 		}
 	}
 
 	// Collection should now exist so just connect to it.
-	collection.Collection = a.database.Collection(definition.name, definition.connectOptions...)
+	collection.Collection = a.database.Collection(definition.Name, definition.ConnectOptions...)
 
 	if !exists {
-		for i, finisher := range definition.finishers {
+		for i, finisher := range definition.Finishers {
 			if err = finisher(a, collection); err != nil {
 				// Since the finishers are only run for previously non-existent collections,
 				// it is appropriate to drop the collection if any of them fail.

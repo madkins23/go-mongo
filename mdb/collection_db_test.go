@@ -49,9 +49,9 @@ func (suite *collectionTestSuite) TestCollectionValidatorFinisher() {
 	name := "test-collection-validation-finisher"
 	var finished bool
 	definition := &CollectionDefinition{
-		name:           name,
-		validationJSON: SimpleValidatorJSON,
-		finishers: []CollectionFinisher{
+		Name:           name,
+		ValidationJSON: SimpleValidatorJSON,
+		Finishers: []CollectionFinisher{
 			func(access *Access, collection *Collection) error {
 				access.Info("Running finisher")
 				finished = true
@@ -70,9 +70,9 @@ func (suite *collectionTestSuite) TestCollectionValidatorFinisher() {
 func (suite *collectionTestSuite) TestCollectionValidatorFinisherError() {
 	name := "test-collection-validation-finisher-error"
 	collection, err := ConnectCollection(suite.access, &CollectionDefinition{
-		name:           "test-collection-validation-finisher-error",
-		validationJSON: SimpleValidatorJSON,
-		finishers: []CollectionFinisher{
+		Name:           "test-collection-validation-finisher-error",
+		ValidationJSON: SimpleValidatorJSON,
+		Finishers: []CollectionFinisher{
 			func(access *Access, collection *Collection) error {
 				return errors.New("fail")
 			},

@@ -60,9 +60,9 @@ func (suite *indexTestSuite) TestIndexFinisher() {
 	index := NewIndexDescription(true, "alpha", "bravo")
 	collection, err := ConnectCollection(suite.access,
 		&CollectionDefinition{
-			name:           "test-collection-index-finisher",
-			validationJSON: SimpleValidatorJSON,
-			finishers: []CollectionFinisher{
+			Name:           "test-collection-index-finisher",
+			ValidationJSON: SimpleValidatorJSON,
+			Finishers: []CollectionFinisher{
 				index.Finisher(),
 			},
 		})
