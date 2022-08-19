@@ -9,9 +9,12 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
-
-	"github.com/madkins23/go-mongo/mdbid"
 )
+
+type cacheRecord[C Cacheable] struct {
+	item    *C
+	indexed map[string]bool
+}
 
 // CachedCollection caches Mongo-stored objects so that the same object is always returned.
 // This is most useful for objects that change rarely.
@@ -19,7 +22,8 @@ import (
 // TODO(mAdkins): Should the change stream be used to clear cache items?
 type CachedCollection[C Cacheable] struct {
 	TypedCollection[C]
-	cache       map[primitive.ObjectID]C
+	cache map[primitive.ObjectID]*C
+	//cacheIndex  map[string]primitive.ObjectID
 	expireAfter time.Duration
 	lock        sync.Mutex
 }
@@ -28,7 +32,8 @@ type CachedCollection[C Cacheable] struct {
 func ConnectCachedCollection[C Cacheable](
 	access *Access, definition *CollectionDefinition, expireAfter time.Duration) (*CachedCollection[C], error) {
 	collection := &CachedCollection[C]{
-		cache:       make(map[primitive.ObjectID]C),
+		cache: make(map[primitive.ObjectID]*C),
+		//cacheIndex:  make(map[string]primitive.ObjectID),
 		expireAfter: expireAfter,
 	}
 	if err := access.CollectionConnect(&collection.Collection, definition); err != nil {
@@ -39,35 +44,80 @@ func ConnectCachedCollection[C Cacheable](
 
 // Cacheable must be searchable and loadable.
 type Cacheable interface {
-	Expirable
-	mdbid.Identifier
-}
-
-// Expirable defines behavior
-type Expirable interface {
+	Identifier
 	ExpireAfter(duration time.Duration)
 	Expired() bool
 }
 
 // Delete object in cache and DB.
-// Because items are Cacheable (and therefore Searchable) the item itself is passed instead of a filter.
-func (c *CachedCollection[Cacheable]) Delete(item mdbid.Identifier, idempotent bool) error {
+func (c *CachedCollection[Cacheable]) Delete(item Identifier, idempotent bool) error {
 	c.lock.Lock()
-	delete(c.cache, item.ID())
+	if _, found := c.cache[item.ID()]; found {
+		delete(c.cache, item.ID())
+		//for k := range i.indexed {
+		//	delete(c.cacheIndex, k)
+		//}
+	}
 	c.lock.Unlock()
-	return c.Collection.Delete(item.Filter(), idempotent)
+	return c.Collection.Delete(item.IDfilter(), idempotent)
 }
 
 // DeleteAll all objects in cache and DB.
 func (c *CachedCollection[Cacheable]) DeleteAll() error {
 	c.lock.Lock()
 	c.cache = make(map[primitive.ObjectID]Cacheable)
+	//c.cacheIndex = make(map[string]primitive.ObjectID)
 	c.lock.Unlock()
 	return c.Collection.DeleteAll()
 }
 
+// FindByID returns either a pre-cached item or finds it in the collection and caches it.
+func (c *CachedCollection[C]) FindByID(id primitive.ObjectID) (*C, error) {
+	c.lock.Lock()
+	if item, found := c.cache[id]; found {
+		remove := false
+		if check.IsZero[C](*item) {
+			remove = true
+		} else {
+			if item.Expired() {
+				delete(c.cache, id)
+				found = false
+			}
+		}
+		if remove {
+			delete(c.cache, id)
+			found = false
+		}
+
+		c.lock.Unlock()
+		return item, nil
+	}
+	result := c.FindOne(c.ctx, bson.D{{"_id", id}})
+	if err := result.Err(); err != nil {
+		c.lock.Unlock()
+		if IsNotFound(err) {
+			return nil, fmt.Errorf("no item with id '%s': %w", id, err)
+		}
+		return nil, fmt.Errorf("find item with id '%s': %w", id, err)
+	}
+	item := new(C)
+	if err := result.Decode(item); err != nil {
+		c.lock.Unlock()
+		return item, fmt.Errorf("decode item: %w", err)
+	}
+	c.cache[id] = item
+	c.lock.Unlock()
+	return item, nil
+}
+
+// FindCached ...
+func (c *CachedCollection[C]) FindCached(searchItem Identifier) (C, error) {
+	panic("FindCached() not implemented")
+}
+
+/*
 // Find a cacheable object in either cache or database.
-func (c *CachedCollection[C]) Find(searchItem mdbid.Identifier) (C, error) {
+func (c *CachedCollection[C]) FindOrig(searchItem Identifier) (C, error) {
 	var item C
 	var found bool
 	c.lock.Lock()
@@ -90,7 +140,7 @@ func (c *CachedCollection[C]) Find(searchItem mdbid.Identifier) (C, error) {
 	}
 
 	if !found {
-		result := c.FindOne(c.ctx, searchItem.Filter())
+		result := c.FindOne(c.ctx, searchItem.IDfilter())
 		if err := result.Err(); err != nil {
 			if IsNotFound(err) {
 				return item, fmt.Errorf("no item '%v': %w", searchItem, err)
@@ -130,6 +180,7 @@ func (c *CachedCollection[Cacheable]) FindOrCreate(cacheItem Cacheable) (Cacheab
 
 	return item, nil
 }
+*/
 
 // Iterate over a set of items, applying the specified function to each one.
 func (c *CachedCollection[T]) Iterate(filter bson.D, fn func(item T) error) error {
@@ -161,7 +212,7 @@ func (c *CachedCollection[T]) Replace(filter, item T, opts ...*options.UpdateOpt
 // Update item referenced by filter by applying update operator expressions.
 // If the filter matches more than one document mongo-go-driver will choose one to update.
 func (c *CachedCollection[T]) Update(filterItem T, changes interface{}, opts ...*options.UpdateOptions) error {
-	err := c.Collection.Update(filterItem.Filter(), changes, opts...)
+	err := c.Collection.Update(filterItem.IDfilter(), changes, opts...)
 	if err != nil {
 		return fmt.Errorf("basic replace: %w", err)
 	}

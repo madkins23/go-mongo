@@ -22,7 +22,6 @@ func ConnectTypedCollection[T any](access *Access, definition *CollectionDefinit
 
 // Find an item in the database.
 // Will return an interface to an item of the collection's type.
-// If the item is Realizable then it will be realized before returning.
 func (c *TypedCollection[T]) Find(filter bson.D) (*T, error) {
 	result := c.FindOne(c.ctx, filter)
 	if err := result.Err(); err != nil {

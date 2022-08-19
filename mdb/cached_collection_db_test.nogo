@@ -11,13 +11,11 @@ import (
 	"github.com/stretchr/testify/suite"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-
-	"github.com/madkins23/go-mongo/test"
 )
 
 type cacheTestSuite struct {
 	AccessTestSuite
-	cached *CachedCollection[*test.SimpleItem]
+	cached *CachedCollection[*SimpleItem]
 }
 
 func TestCacheSuite(t *testing.T) {
@@ -27,10 +25,9 @@ func TestCacheSuite(t *testing.T) {
 func (suite *cacheTestSuite) SetupSuite() {
 	suite.AccessTestSuite.SetupSuite()
 	reg.Highlander().Clear()
-	suite.Require().NoError(test.Register())
-	suite.Require().NoError(test.RegisterWrapped())
+	suite.Require().NoError(RegisterWrapped())
 	var err error
-	suite.cached, err = ConnectCachedCollection[*test.SimpleItem](suite.access, testCollectionValidation, time.Hour)
+	suite.cached, err = ConnectCachedCollection[*SimpleItem](suite.access, testCollectionValidation, time.Hour)
 	suite.Require().NoError(err)
 	suite.NotNil(suite.cached)
 	suite.Require().NoError(suite.cached.DeleteAll())
@@ -42,39 +39,39 @@ func (suite *cacheTestSuite) TearDownTest() {
 }
 
 func (suite *cacheTestSuite) TestCreateDuplicate() {
-	err := suite.cached.Create(test.SimpleItem1)
+	err := suite.cached.Create(SimpleItem1)
 	suite.Require().NoError(err)
-	item, err := suite.cached.Find(test.SimpleItem1)
+	item, err := suite.cached.Find(SimpleItem1)
 	suite.Require().NoError(err)
 	suite.NotNil(item)
 	suite.NotNil(item.ID)
-	err = suite.cached.Create(test.SimpleItem1)
+	err = suite.cached.Create(SimpleItem1)
 	suite.Require().Error(err)
 	suite.Require().True(IsDuplicate(err))
 }
 
 func (suite *cacheTestSuite) TestFindNone() {
-	item, err := suite.cached.Find(test.SimplyInvalid)
+	item, err := suite.cached.Find(SimplyInvalid)
 	suite.Require().Error(err)
 	suite.True(IsNotFound(err))
 	suite.Nil(item)
 }
 
 func (suite *cacheTestSuite) TestFindOrCreate() {
-	item, err := suite.cached.Find(test.SimpleItem2)
+	item, err := suite.cached.Find(SimpleItem2)
 	suite.Require().Error(err)
 	suite.True(IsNotFound(err))
 	suite.Nil(item)
-	item, err = suite.cached.FindOrCreate(test.SimpleItem2)
+	item, err = suite.cached.FindOrCreate(SimpleItem2)
 	suite.Require().NoError(err)
 	suite.NotNil(item)
 	suite.NotNil(item.ID)
 	itemID := item.ID
-	item, err = suite.cached.Find(test.SimpleItem2)
+	item, err = suite.cached.Find(SimpleItem2)
 	suite.Require().NoError(err)
 	suite.NotNil(item)
 	suite.Equal(itemID, item.ID)
-	item2, err := suite.cached.FindOrCreate(test.SimpleItem2)
+	item2, err := suite.cached.FindOrCreate(SimpleItem2)
 	suite.Require().NoError(err)
 	suite.NotNil(item2)
 	suite.Equal(item, item2)
@@ -82,13 +79,13 @@ func (suite *cacheTestSuite) TestFindOrCreate() {
 }
 
 func (suite *cacheTestSuite) TestCreateFindDelete() {
-	err := suite.cached.Create(test.SimpleItem1)
+	err := suite.cached.Create(SimpleItem1)
 	suite.Require().NoError(err)
-	item, err := suite.cached.Find(test.SimpleItem1)
+	item, err := suite.cached.Find(SimpleItem1)
 	suite.Require().NoError(err)
 	suite.NotNil(item)
 	suite.NotNil(item.ID)
-	cacheKey := test.SimpleItem1.ID()
+	cacheKey := SimpleItem1.ID()
 	suite.NotEmpty(cacheKey)
 	_, ok := suite.cached.cache[cacheKey]
 	suite.True(ok)
@@ -96,20 +93,20 @@ func (suite *cacheTestSuite) TestCreateFindDelete() {
 	suite.Require().NoError(err)
 	_, ok = suite.cached.cache[cacheKey]
 	suite.False(ok)
-	noItem, err := suite.cached.Find(test.SimpleItem1)
+	noItem, err := suite.cached.Find(SimpleItem1)
 	suite.Require().Error(err)
 	suite.True(IsNotFound(err))
 	suite.Nil(noItem)
-	err = suite.cached.Delete(test.SimpleItem1, false)
+	err = suite.cached.Delete(SimpleItem1, false)
 	suite.Require().Error(err)
-	err = suite.cached.Delete(test.SimpleItem1, true)
+	err = suite.cached.Delete(SimpleItem1, true)
 	suite.Require().NoError(err)
 }
 
 func (suite *cacheTestSuite) TestCountDeleteAll() {
-	suite.Require().NoError(suite.cached.Create(test.SimpleItem1))
-	suite.Require().NoError(suite.cached.Create(test.SimpleItem2))
-	suite.Require().NoError(suite.cached.Create(test.SimpleItem3))
+	suite.Require().NoError(suite.cached.Create(SimpleItem1))
+	suite.Require().NoError(suite.cached.Create(SimpleItem2))
+	suite.Require().NoError(suite.cached.Create(SimpleItem3))
 	count, err := suite.cached.Count(NoFilter())
 	suite.NoError(err)
 	suite.Equal(int64(3), count)
@@ -120,13 +117,13 @@ func (suite *cacheTestSuite) TestCountDeleteAll() {
 }
 
 func (suite *cacheTestSuite) TestIterate() {
-	suite.Require().NoError(suite.cached.Create(test.SimpleItem1))
-	suite.Require().NoError(suite.cached.Create(test.SimpleItem2))
-	suite.Require().NoError(suite.cached.Create(test.SimpleItem3))
+	suite.Require().NoError(suite.cached.Create(SimpleItem1))
+	suite.Require().NoError(suite.cached.Create(SimpleItem2))
+	suite.Require().NoError(suite.cached.Create(SimpleItem3))
 	count := 0
 	var alpha []string
 	suite.NoError(suite.cached.Iterate(NoFilter(),
-		func(item *test.SimpleItem) error {
+		func(item *SimpleItem) error {
 			alpha = append(alpha, item.Alpha)
 			count++
 			return nil
@@ -136,13 +133,13 @@ func (suite *cacheTestSuite) TestIterate() {
 }
 
 func (suite *cacheTestSuite) TestIterateFiltered() {
-	suite.Require().NoError(suite.cached.Create(test.SimpleItem1))
-	suite.Require().NoError(suite.cached.Create(test.SimpleItem2))
-	suite.Require().NoError(suite.cached.Create(test.SimpleItem3))
+	suite.Require().NoError(suite.cached.Create(SimpleItem1))
+	suite.Require().NoError(suite.cached.Create(SimpleItem2))
+	suite.Require().NoError(suite.cached.Create(SimpleItem3))
 	count := 0
 	var alpha []string
 	suite.NoError(suite.cached.Iterate(bson.D{bson.E{Key: "bravo", Value: 2}},
-		func(item *test.SimpleItem) error {
+		func(item *SimpleItem) error {
 			alpha = append(alpha, item.Alpha)
 			count++
 			return nil
@@ -152,92 +149,90 @@ func (suite *cacheTestSuite) TestIterateFiltered() {
 }
 
 func (suite *cacheTestSuite) TestReplace() {
-	suite.Require().NoError(suite.cached.Create(test.SimpleItem1))
-	item, err := suite.cached.Find(test.SimpleItem1)
+	suite.Require().NoError(suite.cached.Create(SimpleItem1))
+	item, err := suite.cached.Find(SimpleItem1)
 	suite.Require().NoError(err)
 	suite.NotNil(item)
 	suite.NotNil(item.ID)
 	itemID := item.ID
 	suite.Equal("one", item.Alpha)
-	suite.NotNil(suite.cached.cache[test.SimpleItem1.ID()])
+	suite.NotNil(suite.cached.cache[SimpleItem1.ID()])
 	// Replace with new value:
-	suite.Require().NoError(suite.cached.Replace(test.SimpleItem1, test.SimpleItem1x))
-	suite.Nil(suite.cached.cache[test.SimpleItem1.ID()])
-	_, err = suite.cached.Find(test.SimpleItem1)     // look for old item
-	suite.True(IsNotFound(err))                      // gone
-	item, err = suite.cached.Find(test.SimpleItem1x) // look for new item
-	suite.Require().NoError(err)                     // found
+	suite.Require().NoError(suite.cached.Replace(SimpleItem1, SimpleItem1x))
+	suite.Nil(suite.cached.cache[SimpleItem1.ID()])
+	_, err = suite.cached.Find(SimpleItem1)     // look for old item
+	suite.True(IsNotFound(err))                 // gone
+	item, err = suite.cached.Find(SimpleItem1x) // look for new item
+	suite.Require().NoError(err)                // found
 	suite.Require().NotNil(item)
 	suite.NotNil(item)
 	suite.Equal(itemID, item.ID)
 	suite.Equal("xRay", item.Alpha)
-	suite.NotNil(suite.cached.cache[test.SimpleItem1x.ID()])
+	suite.NotNil(suite.cached.cache[SimpleItem1x.ID()])
 	// Replace with same value:
-	err = suite.cached.Replace(test.SimpleItem1x, test.SimpleItem1x)
+	err = suite.cached.Replace(SimpleItem1x, SimpleItem1x)
 	suite.Require().ErrorIs(err, errNoItemModified)
-	suite.NotNil(suite.cached.cache[test.SimpleItem1x.ID()])
-	item, err = suite.cached.Find(test.SimpleItem1x)
+	suite.NotNil(suite.cached.cache[SimpleItem1x.ID()])
+	item, err = suite.cached.Find(SimpleItem1x)
 	suite.Require().NoError(err)
 	suite.NotNil(item)
 	suite.Equal(itemID, item.ID)
 	suite.Equal("xRay", item.Alpha)
-	suite.NotNil(suite.cached.cache[test.SimpleItem1x.ID()])
+	suite.NotNil(suite.cached.cache[SimpleItem1x.ID()])
 	// No match for filter:
-	item, err = suite.cached.Find(test.SimpleItem3)
+	item, err = suite.cached.Find(SimpleItem3)
 	suite.True(IsNotFound(err))
-	suite.ErrorIs(suite.cached.Replace(test.SimpleItem3, test.SimpleItem3), errNoItemMatch)
-	suite.Nil(suite.cached.cache[test.SimpleItem3.ID()])
+	suite.ErrorIs(suite.cached.Replace(SimpleItem3, SimpleItem3), errNoItemMatch)
+	suite.Nil(suite.cached.cache[SimpleItem3.ID()])
 	// Upsert new item:
-	suite.NoError(suite.cached.Replace(test.UnfilteredItem, test.SimpleItem3))
-	suite.Nil(suite.cached.cache[test.UnfilteredItem.ID()])
-	item, err = suite.cached.Find(test.SimpleItem3)
+	suite.NoError(suite.cached.Replace(UnfilteredItem, SimpleItem3))
+	suite.Nil(suite.cached.cache[UnfilteredItem.ID()])
+	item, err = suite.cached.Find(SimpleItem3)
 	suite.Require().NoError(err)
 	suite.NotNil(item)
 	suite.Equal(itemID, item.ID)
 	suite.Equal("three", item.Alpha)
-	suite.NotNil(suite.cached.cache[test.SimpleItem3.ID()])
+	suite.NotNil(suite.cached.cache[SimpleItem3.ID()])
 }
 
 func (suite *cacheTestSuite) TestUpdate() {
-	suite.Require().NoError(suite.cached.Create(test.SimpleItem1))
-	item, err := suite.cached.Find(test.SimpleItem1)
+	suite.Require().NoError(suite.cached.Create(SimpleItem1))
+	item, err := suite.cached.Find(SimpleItem1)
 	suite.Require().NoError(err)
 	suite.Require().NotNil(item)
 	suite.NotNil(item.ID)
 	itemID := item.ID
 	suite.Equal("one", item.Alpha)
-	suite.Equal(test.SimpleCharlie1, item.Charlie)
+	suite.Equal(SimpleCharlie1, item.Charlie)
 	suite.Equal(1, item.Delta)
 	// Set charlie and delta fields:
 	suite.Require().NoError(
-		suite.cached.Update(test.SimpleItem1, bson.M{
+		suite.cached.Update(SimpleItem1, bson.M{
 			"$set": bson.M{"charlie": "One more time"},
 			"$inc": bson.M{"delta": 2},
 		}))
-	item, err = suite.cached.Find(test.SimpleItem1)
+	item, err = suite.cached.Find(SimpleItem1)
 	suite.Require().NoError(err)
 	suite.Require().NotNil(item)
 	suite.Equal(itemID, item.ID)
 	suite.Equal("One more time", item.Charlie)
 	suite.Equal(3, item.Delta)
 	// No match for filter:
-	item, err = suite.cached.Find(test.SimpleItem3)
+	item, err = suite.cached.Find(SimpleItem3)
 	suite.True(IsNotFound(err))
-	suite.ErrorIs(suite.cached.Update(test.SimpleItem3, bson.M{
+	suite.ErrorIs(suite.cached.Update(SimpleItem3, bson.M{
 		"$set": bson.M{"charlie": "Horse"},
 		"$inc": bson.M{"delta": 7},
 	}), errNoItemMatch)
 }
 
 func (suite *cacheTestSuite) TestStringValuesFor() {
-	cached, err := ConnectCachedCollection[*test.SimpleItem](suite.access, testCollectionStringValues, time.Hour)
+	cached, err := ConnectCachedCollection[*SimpleItem](suite.access, testCollectionStringValues, time.Hour)
 	suite.NotNil(cached)
 	for i := 0; i < 5; i++ {
-		suite.Require().NoError(cached.Create(&test.SimpleItem{
-			SimpleKey: test.SimpleKey{
-				Alpha: fmt.Sprintf("Alpha #%d", i),
-				Bravo: i,
-			},
+		suite.Require().NoError(cached.Create(&SimpleItem{
+			Alpha:   fmt.Sprintf("Alpha #%d", i),
+			Bravo:   i,
 			Charlie: "There can be only one",
 		}))
 	}
@@ -266,24 +261,24 @@ func (suite *cacheTestSuite) TestCreateFindDeleteWrapped() {
 	suite.Require().NotNil(foundWrapped)
 	suite.NotNil(foundWrapped.ID)
 	// Zero out the object ID before testing equality.
-	foundWrapped.OID = primitive.ObjectID{}
+	foundWrapped.ObjectID = primitive.ObjectID{}
 	suite.Equal(wrappedItems, foundWrapped)
-	suite.Equal(test.ValueText, foundWrapped.Single.Get().String())
+	suite.Equal(ValueText, foundWrapped.Single.Get().String())
 	for _, item := range foundWrapped.Array {
 		switch item.Get().Key() {
 		case "text":
-			suite.Equal(test.ValueText, item.Get().String())
+			suite.Equal(ValueText, item.Get().String())
 		case "numeric":
-			if numVal, ok := item.Get().(*test.NumericValue); ok {
-				suite.Equal(test.ValueNumber, numVal.Number)
+			if numVal, ok := item.Get().(*NumericValue); ok {
+				suite.Equal(ValueNumber, numVal.Number)
 			} else {
 				suite.Fail("Not NumericValue: " + item.Get().String())
 			}
 		case "random":
 			random := item.Get().String()
 			fmt.Printf("Random:  %s\n", random)
-			suite.True(len(random) >= test.RandomMinimum)
-			suite.True(len(random) <= test.RandomMaximum)
+			suite.True(len(random) >= RandomMinimum)
+			suite.True(len(random) <= RandomMaximum)
 		default:
 			suite.Fail("Unknown item key: '" + item.Get().Key() + "'")
 		}
