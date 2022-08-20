@@ -1,9 +1,11 @@
 package mdb
 
 import (
+	"errors"
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // TypedCollection uses reflection to properly create objects returned from Mongo.
@@ -41,24 +43,13 @@ func (c *TypedCollection[T]) Find(filter bson.D) (*T, error) {
 // FindOrCreate returns an existing cacheable object or creates it if it does not already exist.
 func (c *TypedCollection[T]) FindOrCreate(filter bson.D, item *T) (*T, error) {
 	// Can't inherit from TypedCollection here, must redo the algorithm due to typing.
-	found, err := c.Find(filter)
-	if err != nil {
-		if !IsNotFound(err) {
-			return found, err
-		}
-
-		err = c.Create(item)
-		if err != nil {
-			return found, err
-		}
-
-		found, err = c.Find(filter)
-		if err != nil {
-			return found, fmt.Errorf("find just created item: %w", err)
+	upsert := true
+	if err := c.Update(filter, bson.M{"$setOnInsert": item}, &options.UpdateOptions{Upsert: &upsert}); err != nil {
+		if !errors.Is(err, errNoItemModified) { // OK if item already exists.
+			return nil, fmt.Errorf("update $setOnInsert: %w", err)
 		}
 	}
-
-	return found, nil
+	return c.Find(filter)
 }
 
 // Iterate over a set of items, applying the specified function to each one.

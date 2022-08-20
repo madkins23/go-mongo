@@ -95,24 +95,13 @@ func (c *Collection) Find(filter bson.D) (interface{}, error) {
 // FindOrCreate returns an existing object or creates it if it does not already exist.
 // The filter must correctly find the object as a second Find is done after any necessary creation.
 func (c *Collection) FindOrCreate(filter bson.D, item interface{}) (interface{}, error) {
-	found, err := c.Find(filter)
-	if err != nil {
-		if !IsNotFound(err) {
-			return found, err
-		}
-
-		err = c.Create(item)
-		if err != nil {
-			return found, err
-		}
-
-		found, err = c.Find(filter)
-		if err != nil {
-			return found, fmt.Errorf("find just created item: %w", err)
+	upsert := true
+	if err := c.Update(filter, bson.M{"$setOnInsert": item}, &options.UpdateOptions{Upsert: &upsert}); err != nil {
+		if !errors.Is(err, errNoItemModified) { // OK if item already exists.
+			return nil, fmt.Errorf("update $setOnInsert: %w", err)
 		}
 	}
-
-	return found, nil
+	return c.Find(filter)
 }
 
 // Iterate over a set of items, applying the specified function to each one.
@@ -132,6 +121,12 @@ func (c *Collection) Iterate(filter bson.D, fn func(item interface{}) error) err
 	}
 
 	return nil
+}
+
+// Replace entire item referenced by filter with specified item.
+// If the filter matches more than one document mongo-go-driver will choose one to update.
+func (c *Collection) Replace(filter, item interface{}, opts ...*options.UpdateOptions) error {
+	return c.Update(filter, bson.M{"$set": item}, opts...)
 }
 
 var errNotString = errors.New("value not a string")
@@ -160,12 +155,6 @@ func (c *Collection) StringValuesFor(field string, filter bson.D) ([]string, err
 
 var errNoItemMatch = errors.New("no matching item")
 var errNoItemModified = errors.New("no modified item")
-
-// Replace entire item referenced by filter with specified item.
-// If the filter matches more than one document mongo-go-driver will choose one to update.
-func (c *Collection) Replace(filter, item interface{}, opts ...*options.UpdateOptions) error {
-	return c.Update(filter, bson.M{"$set": item}, opts...)
-}
 
 // Update item referenced by filter by applying update operator expressions.
 // If the filter matches more than one document mongo-go-driver will choose one to update.
