@@ -64,6 +64,36 @@ func (suite *BsonTestSuite) TestWrapper() {
 	suite.Assert().Contains(string(wrapped.Packed.RawForm), StockCostcoSymbol)
 }
 
+func (suite *BsonTestSuite) TestWrapperArray() {
+	type hasArray struct {
+		A []*Wrapper[Investment]
+	}
+
+	stock := MakeCostco()
+	as1 := hasArray{A: make([]*Wrapper[Investment], 1)}
+	as1.A[0] = Wrap[Investment](stock)
+	marshaled, err := bson.Marshal(as1)
+	suite.Require().NoError(err)
+	as2 := hasArray{}
+	suite.Require().NoError(bson.Unmarshal(marshaled, &as2))
+	suite.Equal(as1, as2)
+}
+
+func (suite *BsonTestSuite) TestWrapperMap() {
+	type hasMap struct {
+		M map[string]*Wrapper[Investment]
+	}
+
+	stock := MakeCostco()
+	ms1 := hasMap{M: make(map[string]*Wrapper[Investment])}
+	ms1.M[stock.Symbol] = Wrap[Investment](stock)
+	marshaled, err := bson.Marshal(ms1)
+	suite.Require().NoError(err)
+	ms2 := hasMap{}
+	suite.Require().NoError(bson.Unmarshal(marshaled, &ms2))
+	suite.Equal(ms1, ms2)
+}
+
 //------------------------------------------------------------------------
 
 // TestNormal tests the "normal" case which requires custom un/marshaling.
