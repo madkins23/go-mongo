@@ -1,3 +1,0 @@
-#!/bin/bash
-
-godocdown mdb > README.md
