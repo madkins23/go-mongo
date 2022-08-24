@@ -50,18 +50,12 @@ func (suite *BsonTestSuite) TestWrapper() {
 	suite.Assert().Equal(StockCostcoSymbol, wrapped.Get().Symbol)
 	suite.Assert().Equal(StockCostcoShares, wrapped.Get().Shares)
 	suite.Assert().Equal(StockCostcoPrice, wrapped.Get().Price)
-	clearPacked := ClearPackedAfterMarshal
-	ClearPackedAfterMarshal = false
-	defer func() { ClearPackedAfterMarshal = clearPacked }()
 	marshaledBytes, err := wrapped.MarshalBSON()
 	suite.Require().NoError(err)
 	marshaled := string(marshaledBytes)
 	suite.Assert().Contains(marshaled, "type")
 	suite.Assert().Contains(marshaled, "data")
 	suite.Assert().Contains(marshaled, "[test]Stock")
-	suite.Assert().Equal("[test]Stock", wrapped.Packed.TypeName)
-	suite.Assert().Contains(string(wrapped.Packed.RawForm), StockCostcoName)
-	suite.Assert().Contains(string(wrapped.Packed.RawForm), StockCostcoSymbol)
 }
 
 func (suite *BsonTestSuite) TestWrapperArray() {
