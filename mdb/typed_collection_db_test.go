@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/madkins23/go-type/reg"
 	"github.com/stretchr/testify/suite"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+
+	"github.com/madkins23/go-type/reg"
 )
 
 type typedTestSuite struct {
@@ -252,28 +253,34 @@ func (suite *typedTestSuite) TestCreateFindDeleteWrapped() {
 	// Zero out the object ID before testing equality.
 	foundWrapped.ObjectID = primitive.ObjectID{}
 	suite.Equal(wrappedItems, foundWrapped)
-	suite.Equal(ValueText, foundWrapped.Single.Get().String())
+	foundWrappedGet := foundWrapped.Single.Get()
+	suite.Require().NotNil(foundWrappedGet)
+	suite.Equal(ValueText, foundWrappedGet.String())
 	for _, item := range foundWrapped.Array {
-		switch item.Get().Key() {
+		itemGet := item.Get()
+		suite.Require().NotNil(itemGet)
+		switch itemGet.Key() {
 		case "text":
-			suite.Equal(ValueText, item.Get().String())
+			suite.Equal(ValueText, itemGet.String())
 		case "numeric":
-			if numVal, ok := item.Get().(*NumericValue); ok {
+			if numVal, ok := itemGet.(*NumericValue); ok {
 				suite.Equal(ValueNumber, numVal.Number)
 			} else {
-				suite.Fail("Not NumericValue: " + item.Get().String())
+				suite.Fail("Not NumericValue: " + itemGet.String())
 			}
 		case "random":
-			random := item.Get().String()
+			random := itemGet.String()
 			fmt.Printf("Random:  %s\n", random)
 			suite.True(len(random) >= RandomMinimum)
 			suite.True(len(random) <= RandomMaximum)
 		default:
-			suite.Fail("Unknown item key: '" + item.Get().Key() + "'")
+			suite.Fail("Unknown item key: '" + itemGet.Key() + "'")
 		}
 	}
 	for key, item := range foundWrapped.Map {
-		suite.Equal(key, item.Get().Key())
+		itemGet := item.Get()
+		suite.Require().NotNil(itemGet)
+		suite.Equal(key, itemGet.Key())
 	}
 	err = wrapped.Delete(wrappedItems.Filter(), false)
 	suite.Require().NoError(err)
