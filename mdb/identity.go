@@ -6,6 +6,8 @@ import (
 )
 
 // Identifier provides an interface to items that use the primitive Mongo ObjectID.
+// When embedding this always use:
+//   mdb.Identifier `bson:"inline"`
 type Identifier interface {
 	ID() primitive.ObjectID
 	IDfilter() bson.D
@@ -21,7 +23,12 @@ func (idm *Identity) ID() primitive.ObjectID {
 	return idm.ObjectID
 }
 
-// Filter returns a Mongo filter object for the item's ID.
+// IDfilter method returns a Mongo filter object for the item's ID.
 func (idm *Identity) IDfilter() bson.D {
-	return bson.D{{"_id", idm.ObjectID}}
+	return IDfilter(idm.ObjectID)
+}
+
+// IDfilter function returns a Mongo filter object for the specified ObjectID.
+func IDfilter(id primitive.ObjectID) bson.D {
+	return bson.D{{"_id", id}}
 }

@@ -28,15 +28,13 @@ var SimpleValidatorJSON = `{
 
 var _ Identifier = &SimpleItem{}
 
-// var _ Expirable = &SimpleItem{}
-
 type SimpleItem struct {
-	Identity
-	Alpha   string `bson:",omitempty"`
-	Bravo   int    `bson:",omitempty"`
-	Charlie string `bson:",omitempty"`
-	Delta   int    `bson:",omitempty"`
-	expires time.Time
+	Identity `bson:"inline"`
+	Alpha    string `bson:",omitempty"`
+	Bravo    int    `bson:",omitempty"`
+	Charlie  string `bson:",omitempty"`
+	Delta    int    `bson:",omitempty"`
+	expires  time.Time
 }
 
 func (si *SimpleItem) ExpireAfter(duration time.Duration) {
