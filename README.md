@@ -3,6 +3,9 @@
 Provides some potentially useful functionality wrapped around the
 [MongoDB `go` driver](https://github.com/mongodb/mongo-go-driver).
 
+![GitHub](https://img.shields.io/github/license/madkins23/go-mongo)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/madkins23/go-mongo)
+
 ### Caveats
 
 You are more than welcome to use this software as is but these are
