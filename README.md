@@ -3,20 +3,12 @@
 Provides some potentially useful functionality wrapped around the
 [MongoDB `go` driver](https://github.com/mongodb/mongo-go-driver).
 
+
+See the [source](https://github.com/madkins23/go-mongo) or
+[godoc](https://godoc.org/github.com/madkins23/go-mongo) for documentation.
+
 ![GitHub](https://img.shields.io/github/license/madkins23/go-mongo)
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/madkins23/go-mongo)
-
-### Caveats
-
-You are more than welcome to use this software as is but these are
-utility packages constructed by the author for use in personal projects.
-The author makes occasional changes and attempts to follow proper versioning and release protocols,
-however this code should not be considered production quality or maintained.
-
-*Consider copying the code into your own project and modifying to fit your need.*
-
-See the [source](https://github.com/madkins23/go-mongo)
-or [godoc](https://godoc.org/github.com/madkins23/go-mongo) for documentation.
 
 ## Package `mdb`
 
