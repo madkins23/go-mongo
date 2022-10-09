@@ -7,6 +7,7 @@ Provides some potentially useful functionality wrapped around the
 See the [source](https://github.com/madkins23/go-mongo) or
 [godoc](https://godoc.org/github.com/madkins23/go-mongo) for documentation.
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/madkins23/go-mongo)](https://goreportcard.com/report/github.com/madkins23/go-mongo)
 ![GitHub](https://img.shields.io/github/license/madkins23/go-mongo)
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/madkins23/go-mongo)
 [![Go Reference](https://pkg.go.dev/badge/github.com/madkins23/go-mongo.svg)](https://pkg.go.dev/github.com/madkins23/go-mongo)
