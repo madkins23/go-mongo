@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/davecgh/go-spew v1.1.1
-	github.com/madkins23/go-serial v1.2.0
+	github.com/madkins23/go-serial v1.2.1
 	github.com/madkins23/go-type v1.1.0
 	github.com/stretchr/testify v1.8.4
 	go.mongodb.org/mongo-driver v1.11.6
