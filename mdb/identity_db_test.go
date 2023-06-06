@@ -18,11 +18,7 @@ func TestIdentitySuite(t *testing.T) {
 
 func (suite *identityTestSuite) SetupSuite() {
 	suite.AccessTestSuite.SetupSuite()
-	var err error
-	suite.collection, err = ConnectCollection(suite.access, testCollection)
-	suite.Require().NoError(err)
-	suite.NotNil(suite.collection)
-	suite.Require().NoError(suite.collection.DeleteAll())
+	suite.collection = suite.ConnectCollection(testCollection)
 }
 
 func (suite *identityTestSuite) TearDownTest() {
@@ -42,7 +38,7 @@ func (suite *identityTestSuite) TestIndex() {
 	ind.Text = findable
 	suite.Require().NoError(suite.collection.Create(ind))
 	found := suite.findStruct(bson.D{{"text", findable}})
-	// Do we have an ID?
+	// Do we have an email?
 	suite.Require().NotNil(found.ObjectID)
 	suite.Require().NotNil(found.ID())
 	suite.Equal(found.ObjectID, found.ID())

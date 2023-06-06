@@ -24,7 +24,7 @@ func TestCacheSuite(t *testing.T) {
 
 func (suite *cacheTestSuite) SetupSuite() {
 	suite.AccessTestSuite.SetupSuite()
-	reg.Highlander().Clear()
+	reg.Singleton().Clear()
 	suite.Require().NoError(RegisterWrapped())
 	var err error
 	suite.cached, err = ConnectCachedCollection[*SimpleItem](suite.access, testCollectionValidation, time.Hour)

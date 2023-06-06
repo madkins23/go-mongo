@@ -24,7 +24,7 @@ func (suite *BsonTestSuite) SetupSuite() {
 		suite.showSerialized, err = strconv.ParseBool(showSerialized)
 		suite.Require().NoError(err)
 	}
-	reg.Highlander().Clear()
+	reg.Singleton().Clear()
 	suite.Require().NoError(RegisterPortfolio())
 	suite.Require().NoError(reg.AddAlias("mdbson", Bond{}), "creating bson test alias")
 	suite.Require().NoError(reg.Register(Bond{}))

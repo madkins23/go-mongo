@@ -24,19 +24,18 @@ func TestTypedSuite(t *testing.T) {
 
 func (suite *typedTestSuite) SetupSuite() {
 	suite.AccessTestSuite.SetupSuite()
-	reg.Highlander().Clear()
+	reg.Singleton().Clear()
 	suite.Require().NoError(RegisterWrapped())
-	var err error
-	suite.typed, err = ConnectTypedCollection[SimpleItem](suite.access, testCollectionValidation)
-	suite.Require().NoError(err)
-	suite.NotNil(suite.typed)
-	suite.Require().NoError(suite.typed.DeleteAll())
-	suite.Require().NoError(suite.access.Index(&suite.typed.Collection, NewIndexDescription(true, "alpha")))
+	suite.typed = ConnectTypedCollectionHelper[SimpleItem](
+		&suite.AccessTestSuite, testCollectionValidation,
+		NewIndexDescription(true, "alpha"))
 }
 
 func (suite *typedTestSuite) TearDownTest() {
 	suite.NoError(suite.typed.DeleteAll())
 }
+
+//////////////////////////////////////////////////////////////////////////
 
 func (suite *typedTestSuite) TestCreateDuplicate() {
 	err := suite.typed.Create(SimpleItem1)
@@ -260,7 +259,7 @@ func (suite *typedTestSuite) TestCreateFindDeleteWrapped() {
 	suite.Require().NoError(err)
 	suite.Require().NotNil(foundWrapped)
 	suite.NotNil(foundWrapped.ID)
-	// Zero out the object ID before testing equality.
+	// Zero out the object email before testing equality.
 	foundWrapped.ObjectID = primitive.ObjectID{}
 	suite.Equal(wrappedItems, foundWrapped)
 	foundWrappedGet := foundWrapped.Single.Get()

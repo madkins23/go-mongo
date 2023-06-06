@@ -83,7 +83,7 @@ func (w *Wrapper[T]) UnmarshalBSON(marshaled []byte) error {
 	} else if err = decoder.Decode(temp); err != nil {
 		return fmt.Errorf("decode wrapper contents: %w", err)
 	} else if w.item, ok = temp.(T); !ok {
-		// TODO: How to get name of T?
+		// TODO(mAdkins): How to get name of T?
 		return fmt.Errorf("type %s not generic type", pack.TypeName)
 	} else {
 		return nil

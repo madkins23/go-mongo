@@ -14,8 +14,4 @@ var (
 	testCollectionWrapped = &CollectionDefinition{
 		Name: "test-collection-wrapped",
 	}
-	testCollectionIndexFinisher = &CollectionDefinition{
-		Name:           "test-collection-index-finisher",
-		ValidationJSON: SimpleValidatorJSON,
-	}
 )

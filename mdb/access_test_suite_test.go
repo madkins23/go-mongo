@@ -1,10 +1,5 @@
 package mdb
 
-// Would prefer to name this file ending in _test.go
-//  so that it won't be included in generated code,
-//  but then it can't be referenced from other packages for some reason,
-//  so it couldn't be used (as designed) in tests in other packages.
-
 import (
 	"github.com/stretchr/testify/suite"
 )
@@ -37,6 +32,8 @@ func (suite *AccessTestSuite) TearDownSuite() {
 	suite.NoError(suite.access.Disconnect(), "disconnect from mongo")
 }
 
+// ConnectCollection connects to the specified collection and adds any provided indexes
+// as necessary in a SetupSuite() with test checks so that any errors blow up the test.
 func (suite *AccessTestSuite) ConnectCollection(
 	definition *CollectionDefinition, indexDescriptions ...*IndexDescription) *Collection {
 	collection, err := ConnectCollection(suite.access, definition)
@@ -45,6 +42,20 @@ func (suite *AccessTestSuite) ConnectCollection(
 	suite.Require().NoError(collection.DeleteAll())
 	for _, indexDescription := range indexDescriptions {
 		suite.Require().NoError(suite.access.Index(collection, indexDescription))
+	}
+	return collection
+}
+
+// ConnectTypedCollectionHelper is similar to AccessTestSuite.ConnectionCollection().
+// Go doesn't support generic methods so this can't be a method on AccessTestSuite.
+func ConnectTypedCollectionHelper[T any](
+	suite *AccessTestSuite, definition *CollectionDefinition, indexDescriptions ...*IndexDescription) *TypedCollection[T] {
+	collection, err := ConnectTypedCollection[T](suite.access, definition)
+	suite.Require().NoError(err)
+	suite.NotNil(collection)
+	suite.Require().NoError(collection.DeleteAll())
+	for _, indexDescription := range indexDescriptions {
+		suite.Require().NoError(suite.access.Index(&collection.Collection, indexDescription))
 	}
 	return collection
 }

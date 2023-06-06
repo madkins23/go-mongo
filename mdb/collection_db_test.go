@@ -23,12 +23,7 @@ func TestCollectionSuite(t *testing.T) {
 
 func (suite *collectionTestSuite) SetupSuite() {
 	suite.AccessTestSuite.SetupSuite()
-	var err error
-	suite.collection, err = ConnectCollection(suite.access, testCollection)
-	suite.Require().NoError(err)
-	suite.NotNil(suite.collection)
-	suite.Require().NoError(suite.collection.DeleteAll())
-	suite.Require().NoError(suite.access.Index(suite.collection, NewIndexDescription(true, "alpha")))
+	suite.collection = suite.ConnectCollection(testCollection, NewIndexDescription(true, "alpha"))
 }
 
 func (suite *collectionTestSuite) TearDownTest() {
