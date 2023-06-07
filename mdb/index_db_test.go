@@ -72,6 +72,8 @@ func (suite *indexTestSuite) TestIndexFinisher() {
 	NewIndexTester().TestIndexes(suite.T(), collection, index)
 }
 
+// =============================================================================
+
 // IndexTester provides a utility for verifying index creation.
 type IndexTester []indexDatum
 
@@ -84,8 +86,6 @@ type indexDatum struct {
 func NewIndexTester() IndexTester {
 	return make(IndexTester, 0, 2)
 }
-
-// =============================================================================
 
 func (it IndexTester) TestIndexes(t *testing.T, collection *Collection, descriptions ...*IndexDescription) {
 	ctx := context.Background()
